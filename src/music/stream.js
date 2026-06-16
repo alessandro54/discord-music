@@ -6,11 +6,11 @@ const YTDLP = () => process.env.YTDLP_PATH || 'yt-dlp';
 export function getYoutubeInfo(url) {
     return new Promise((resolve, reject) => {
         const proc = spawn(YTDLP(), ['--dump-json', '--no-playlist', '--quiet', url]);
-        let data = '';
+        let data = '', errData = '';
         proc.stdout.on('data', d => { data += d; });
-        proc.stderr.on('data', () => {});
+        proc.stderr.on('data', d => { errData += d; });
         proc.on('close', code => {
-            if (code !== 0) return reject(new Error('yt-dlp metadata failed'));
+            if (code !== 0) return reject(new Error(`yt-dlp metadata failed (${code}): ${errData.trim()}`));
             try {
                 const info = JSON.parse(data);
                 const s = info.duration ?? 0;
