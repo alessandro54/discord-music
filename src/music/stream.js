@@ -30,6 +30,15 @@ function extractVideoId(url) {
     return url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)?.[1];
 }
 
+export async function searchYoutube(query, limit = 5) {
+    const yt = await getInnertube();
+    const res = await yt.search(query, { type: "video" });
+    return (res.videos ?? []).slice(0, limit).map((v) => ({
+        title: v.title?.text ?? v.title ?? "Unknown",
+        url: `https://www.youtube.com/watch?v=${v.id}`,
+    }));
+}
+
 export function prefetchSong(url) {
     const videoId = extractVideoId(url);
     if (videoId) getCachedInfo(videoId).catch(() => {});
