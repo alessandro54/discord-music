@@ -8,7 +8,7 @@ import { YouTube } from "youtube-sr";
 import { TIMEOUTS } from "../lib/constants.js";
 import { saveSong } from "../lib/db.js";
 import { log } from "../lib/logger.js";
-import { createStream, prefetchSong } from "./stream.js";
+import { createStream, getSongMeta, prefetchSong } from "./stream.js";
 
 export const queues = new Map();
 
@@ -146,6 +146,11 @@ export class GuildQueue {
 
         try {
             const resource = await createStream(song.url, this.seekOffset);
+            // patch duration from InnerTube cache if youtube-sr returned unknown
+            if (song.duration === "?:??") {
+                const meta = getSongMeta(song.url);
+                if (meta?.duration) song.duration = meta.duration;
+            }
             this.resource = resource;
             this.player.play(resource);
             this.playing = true;
