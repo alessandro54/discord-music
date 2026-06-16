@@ -22,7 +22,7 @@ async function getCachedInfo(videoId) {
     const hit = infoCache.get(videoId);
     if (hit && hit.expiresAt > Date.now()) return hit.info;
     const yt = await getInnertube();
-    const info = await yt.getBasicInfo(videoId);
+    const info = await yt.getInfo(videoId);
     infoCache.set(videoId, { info, expiresAt: Date.now() + INFO_TTL });
     return info;
 }

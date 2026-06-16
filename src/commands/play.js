@@ -59,7 +59,13 @@ async function resolveSongs(query, requestedBy, requestedById) {
 
     const results = await YouTube.search(query, { limit: 1, type: "video" });
     if (!results.length) return { songs: [], playlistName: null };
-    return { songs: [songFrom(results[0], requestedBy, requestedById)], playlistName: null };
+    const hit = results[0];
+    const song = songFrom(hit, requestedBy, requestedById);
+    if (song.duration === "?:??" && hit.url) {
+        const info = await getYoutubeInfo(hit.url).catch(() => null);
+        if (info?.duration) song.duration = info.duration;
+    }
+    return { songs: [song], playlistName: null };
 }
 
 export default {
