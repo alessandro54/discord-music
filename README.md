@@ -1,21 +1,26 @@
 # oerni-bot
 
-A self-hosted Discord music bot that actually respects your server's CPU. Built on yt-dlp and WebmOpus passthrough — no transcoding for normal playback, ~5% CPU instead of 50%.
+> **Lightweight, high-performance Discord music bot. Self-hosted. Zero compromise.**
 
-> Fork it, configure it, run it. Your server, your data.
+![Node.js](https://img.shields.io/badge/Node.js-v20-339933?logo=node.js&logoColor=white)
+![discord.js](https://img.shields.io/badge/discord.js-v14-5865F2?logo=discord&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![CPU](https://img.shields.io/badge/CPU-~5%25_on_playback-brightgreen)
+
+Most Discord music bots transcode everything through ffmpeg at 256k — even when the audio is already Opus. oerni streams WebM/Opus directly from YouTube. **ffmpeg never runs for normal playback.**
+
+The result: ~5% CPU instead of 50%. No quality loss. No added latency.
 
 ---
 
-## Why this over other bots?
+## Why oerni?
 
-Most music bots transcode everything through ffmpeg at 256k even when the source is already Opus. This bot streams WebM/Opus directly from YouTube — ffmpeg only runs for seeks.
-
-- **Low CPU** — WebmOpus passthrough, zero transcoding for normal play
-- **Reliable** — yt-dlp as the backend, not fragile scrapers
-- **No vendor lock-in** — self-hosted, your data stays yours
-- **Zero infra required** — SQLite by default, MySQL optional
-- **Web dashboard** — now playing, queue controls, server config
-- **Spotify support** — tracks, albums, playlists via YouTube resolution
+- **WebmOpus passthrough** — zero transcoding, lowest CPU of any self-hosted bot
+- **yt-dlp backend** — battle-tested, updated daily, handles everything YouTube throws at it
+- **Self-hosted** — your server, your data, no subscriptions, no rate limits
+- **SQLite out of the box** — no database to set up, works on day one
+- **Web dashboard** — live queue, controls, and per-guild config from your browser
+- **Spotify support** — tracks, albums, playlists resolved to YouTube automatically
 
 ---
 
