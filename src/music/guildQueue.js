@@ -8,7 +8,7 @@ import { YouTube } from "youtube-sr";
 import { TIMEOUTS } from "../lib/constants.js";
 import { saveSong } from "../lib/db.js";
 import { log } from "../lib/logger.js";
-import { createStream } from "./stream.js";
+import { createStream, prefetchSong } from "./stream.js";
 
 export const queues = new Map();
 
@@ -131,10 +131,12 @@ export class GuildQueue {
         }
 
         try {
-            const resource = createStream(song.url, this.seekOffset);
+            const resource = await createStream(song.url, this.seekOffset);
             this.resource = resource;
             this.player.play(resource);
             this.playing = true;
+            const next = this.songs[1];
+            if (next?.url) prefetchSong(next.url);
             log.music(
                 `${log.bold(song.title)} ${log.gray(`· ${song.duration} · by ${song.requestedBy}`)}`,
             );
@@ -159,7 +161,7 @@ export class GuildQueue {
         this._killStream();
         this.seekOffset = seconds;
         try {
-            const resource = createStream(this.current.url, seconds);
+            const resource = await createStream(this.current.url, seconds);
             this.resource = resource;
             this.player.play(resource);
             return true;

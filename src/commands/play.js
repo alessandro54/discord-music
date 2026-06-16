@@ -12,47 +12,44 @@ import {
     resolveSpotify,
 } from "../music/spotify.js";
 import { getYoutubeInfo } from "../music/stream.js";
-
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
+const YOUTUBE_LIST_RE = /[?&]list=/;
+
+function songFrom(v, requestedBy, requestedById) {
+    return {
+        title: v.title,
+        url: v.url,
+        duration: v.duration?.timestamp ?? "?:??",
+        requestedBy,
+        requestedById,
+        spotifyTrack: null,
+    };
+}
 
 async function resolveSongs(query, requestedBy, requestedById) {
     if (isSpotifyUrl(query)) {
         return resolveSpotify(query, requestedBy, requestedById);
     }
 
+    if (YOUTUBE_RE.test(query) && YOUTUBE_LIST_RE.test(query)) {
+        const playlist = await YouTube.getPlaylist(query);
+        if (!playlist) throw new Error("Playlist not found");
+        await playlist.fetch(LIMITS.PLAYLIST_MAX);
+        const songs = playlist.videos
+            .slice(0, LIMITS.PLAYLIST_MAX)
+            .filter((v) => v.title && v.url)
+            .map((v) => songFrom(v, requestedBy, requestedById));
+        return { songs, playlistName: playlist.title };
+    }
+
     if (YOUTUBE_RE.test(query)) {
-        const v = await getYoutubeInfo(query);
-        return {
-            songs: [
-                {
-                    title: v.title,
-                    url: v.url,
-                    duration: v.duration,
-                    requestedBy,
-                    requestedById,
-                    spotifyTrack: null,
-                },
-            ],
-            playlistName: null,
-        };
+        const v = await YouTube.getVideo(query) ?? await getYoutubeInfo(query);
+        return { songs: [songFrom(v, requestedBy, requestedById)], playlistName: null };
     }
 
     const results = await YouTube.search(query, { limit: 1, type: "video" });
     if (!results.length) return { songs: [], playlistName: null };
-    const v = results[0];
-    return {
-        songs: [
-            {
-                title: v.title,
-                url: v.url,
-                duration: v.duration?.timestamp ?? "Unknown",
-                requestedBy,
-                requestedById,
-                spotifyTrack: null,
-            },
-        ],
-        playlistName: null,
-    };
+    return { songs: [songFrom(results[0], requestedBy, requestedById)], playlistName: null };
 }
 
 export default {
@@ -115,11 +112,9 @@ export default {
                 .setAutocomplete(true),
         ),
     async execute(interaction) {
-        await interaction.deferReply();
-
         const voiceChannel = interaction.member.voice.channel;
         if (!voiceChannel) {
-            return interaction.editReply("Join a voice channel first.");
+            return interaction.reply({ content: "Join a voice channel first.", ephemeral: true });
         }
 
         const perms = voiceChannel.permissionsFor(interaction.guild.members.me);
@@ -127,12 +122,14 @@ export default {
             !perms.has(PermissionFlagsBits.Connect) ||
             !perms.has(PermissionFlagsBits.Speak)
         ) {
-            return interaction.editReply(
-                "I don't have permission to join or speak in that voice channel.",
-            );
+            return interaction.reply({
+                content: "I don't have permission to join or speak in that voice channel.",
+                ephemeral: true,
+            });
         }
 
         const query = interaction.options.getString("query");
+        await interaction.reply({ content: `🔍 Searching for **${query}**…` });
 
         let resolved;
         try {

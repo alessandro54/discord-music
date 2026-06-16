@@ -1,10 +1,13 @@
-import { CHANNEL_IDS } from "../lib/constants.js";
+import { getConfig } from "../lib/config.js";
 import { embed } from "../lib/embeds.js";
 
 export default {
     name: "guildMemberAdd",
     async execute(member) {
-        const channel = member.guild.channels.cache.get(CHANNEL_IDS.WELCOME);
+        const config = getConfig(member.guild.id);
+        if (!config.welcome_channel_id) return;
+
+        const channel = member.guild.channels.cache.get(config.welcome_channel_id);
         if (!channel) return;
 
         channel.send({
@@ -12,7 +15,7 @@ export default {
                 embed()
                     .setTitle("Welcome! 🎮")
                     .setDescription(
-                        `Hey ${member}, glad you're here!\nCheck out <#${CHANNEL_IDS.RULES}> to get started.`,
+                        `Hey ${member}, glad you're here!${config.rules_channel_id ? `\nCheck out <#${config.rules_channel_id}> to get started.` : ""}`,
                     )
                     .setThumbnail(member.user.displayAvatarURL())
                     .setFooter({ text: `Member #${member.guild.memberCount}` }),

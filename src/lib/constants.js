@@ -16,9 +16,4 @@ export const TIMEOUTS = {
     VOICE_RECONNECT_MS: 5_000,
 };
 
-export const CHANNEL_IDS = {
-    WELCOME: "902775878075940905",
-    RULES: "907823328369180682",
-};
-
 export const POLL_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"];
