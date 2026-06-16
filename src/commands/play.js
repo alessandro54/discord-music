@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { joinVoiceChannel } from '@discordjs/voice';
 import { getYoutubeInfo } from '../music/stream.js';
 import { YouTube } from 'youtube-sr';
@@ -66,6 +66,11 @@ export default {
         const voiceChannel = interaction.member.voice.channel;
         if (!voiceChannel) {
             return interaction.editReply('Join a voice channel first.');
+        }
+
+        const perms = voiceChannel.permissionsFor(interaction.guild.members.me);
+        if (!perms.has(PermissionFlagsBits.Connect) || !perms.has(PermissionFlagsBits.Speak)) {
+            return interaction.editReply("I don't have permission to join or speak in that voice channel.");
         }
 
         const query = interaction.options.getString('query');

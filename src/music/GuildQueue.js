@@ -1,4 +1,4 @@
-import { createAudioPlayer, AudioPlayerStatus, VoiceConnectionStatus } from '@discordjs/voice';
+import { createAudioPlayer, AudioPlayerStatus, VoiceConnectionStatus, entersState } from '@discordjs/voice';
 import { YouTube } from 'youtube-sr';
 import { createStream } from './stream.js';
 import { log } from '../logger.js';
@@ -41,7 +41,16 @@ export class GuildQueue {
     setConnection(connection) {
         this.connection = connection;
         connection.subscribe(this.player);
-        connection.on(VoiceConnectionStatus.Disconnected, () => this.destroy());
+        connection.on(VoiceConnectionStatus.Disconnected, async () => {
+            try {
+                await Promise.race([
+                    entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                    entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                ]);
+            } catch {
+                this.destroy();
+            }
+        });
         connection.on('error', err => console.error(`[VoiceConnection ${this.guildId}]`, err.message));
     }
 
