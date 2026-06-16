@@ -11,9 +11,18 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
-import { getYoutubeInfo } from "../music/stream.js";
-
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
+
+function songFrom(v, requestedBy, requestedById) {
+    return {
+        title: v.title,
+        url: v.url,
+        duration: v.duration?.timestamp ?? "?:??",
+        requestedBy,
+        requestedById,
+        spotifyTrack: null,
+    };
+}
 
 async function resolveSongs(query, requestedBy, requestedById) {
     if (isSpotifyUrl(query)) {
@@ -21,38 +30,14 @@ async function resolveSongs(query, requestedBy, requestedById) {
     }
 
     if (YOUTUBE_RE.test(query)) {
-        const v = await getYoutubeInfo(query);
-        return {
-            songs: [
-                {
-                    title: v.title,
-                    url: v.url,
-                    duration: v.duration,
-                    requestedBy,
-                    requestedById,
-                    spotifyTrack: null,
-                },
-            ],
-            playlistName: null,
-        };
+        const v = await YouTube.getVideo(query);
+        if (!v) throw new Error("Video not found");
+        return { songs: [songFrom(v, requestedBy, requestedById)], playlistName: null };
     }
 
     const results = await YouTube.search(query, { limit: 1, type: "video" });
     if (!results.length) return { songs: [], playlistName: null };
-    const v = results[0];
-    return {
-        songs: [
-            {
-                title: v.title,
-                url: v.url,
-                duration: v.duration?.timestamp ?? "Unknown",
-                requestedBy,
-                requestedById,
-                spotifyTrack: null,
-            },
-        ],
-        playlistName: null,
-    };
+    return { songs: [songFrom(results[0], requestedBy, requestedById)], playlistName: null };
 }
 
 export default {
