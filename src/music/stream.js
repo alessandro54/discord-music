@@ -5,7 +5,8 @@ import { log } from "../lib/logger.js";
 
 const YTDLP = process.env.YTDLP_PATH || join(dirname(process.argv[1]), "yt-dlp");
 const YTDLP_FAST = ["--no-check-formats", "--extractor-args", "youtube:skip=dash,hls"];
-const URL_TTL = 4 * 60 * 60 * 1000; // 4h — YouTube pre-signed URLs last ~6h
+const AUDIO_FMT = "bestaudio[ext=webm][acodec=opus]/bestaudio[ext=opus]/bestaudio";
+const URL_TTL = 4 * 60 * 60 * 1000; // 4h
 
 const urlCache = new Map(); // videoId → { streamUrl, expiresAt }
 
@@ -13,60 +14,50 @@ function extractVideoId(url) {
     return url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)?.[1];
 }
 
-function ytdlpGetUrl(url) {
+function fmtSecs(s) {
+    s = Math.floor(s);
+    const m = Math.floor(s / 60), h = Math.floor(m / 60);
+    return h > 0
+        ? `${h}:${String(m % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
+        : `${m}:${String(s % 60).padStart(2, "0")}`;
+}
+
+// single yt-dlp spawn → title + duration + stream URL
+export function fetchVideoInfo(url) {
     return new Promise((resolve, reject) => {
         const proc = spawn(YTDLP, [
             "--no-playlist", "--quiet", "--no-warnings", ...YTDLP_FAST,
-            "-f", "bestaudio[ext=webm][acodec=opus]/bestaudio[ext=opus]/bestaudio",
-            "--get-url", url,
+            "-f", AUDIO_FMT,
+            "--print", "title",
+            "--print", "duration",
+            "--print", "url",
+            url,
         ]);
         let out = "", err = "";
         proc.stdout.on("data", (d) => { out += d; });
         proc.stderr.on("data", (d) => { err += d; });
         proc.on("close", (code) => {
-            if (code !== 0) return reject(new Error(`yt-dlp get-url failed (${code}): ${err.trim()}`));
-            const streamUrl = out.trim().split("\n")[0];
-            if (!streamUrl) return reject(new Error("no url returned"));
-            resolve(streamUrl);
+            if (code !== 0) return reject(new Error(`yt-dlp failed (${code}): ${err.trim()}`));
+            const [title, durStr, streamUrl] = out.trim().split("\n");
+            if (!title || !streamUrl) return reject(new Error("incomplete yt-dlp output"));
+            const duration = fmtSecs(parseInt(durStr, 10) || 0);
+            const videoId = extractVideoId(url);
+            if (videoId && streamUrl) {
+                urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL });
+            }
+            resolve({ title, url, duration, streamUrl });
         });
         proc.on("error", reject);
     });
 }
 
-// warm URL cache at submit time (single spawn, not during autocomplete)
+// warm URL cache for next song (one spawn in background)
 export function warmUrlCache(url) {
     const videoId = extractVideoId(url);
     if (!videoId) return;
     const cached = urlCache.get(videoId);
     if (cached && cached.expiresAt > Date.now()) return;
-    ytdlpGetUrl(url)
-        .then((streamUrl) => urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL }))
-        .catch(() => {});
-}
-
-export function getYoutubeInfo(url) {
-    return new Promise((resolve, reject) => {
-        const proc = spawn(YTDLP, ["--dump-json", "--no-playlist", "--quiet", ...YTDLP_FAST, url]);
-        let data = "", errData = "";
-        proc.stdout.on("data", (d) => { data += d; });
-        proc.stderr.on("data", (d) => { errData += d; });
-        proc.on("close", (code) => {
-            if (code !== 0) return reject(new Error(`yt-dlp metadata failed (${code}): ${errData.trim()}`));
-            try {
-                const info = JSON.parse(data);
-                const s = info.duration ?? 0;
-                const m = Math.floor(s / 60);
-                const h = Math.floor(m / 60);
-                const duration = h > 0
-                    ? `${h}:${String(m % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
-                    : `${m}:${String(s % 60).padStart(2, "0")}`;
-                resolve({ title: info.title, url: info.webpage_url ?? url, duration });
-            } catch {
-                reject(new Error("Failed to parse yt-dlp output"));
-            }
-        });
-        proc.on("error", reject);
-    });
+    fetchVideoInfo(url).catch(() => {});
 }
 
 export async function createStream(url, seekSeconds = 0) {
@@ -79,7 +70,7 @@ export async function createStream(url, seekSeconds = 0) {
             try {
                 return _ffmpegUrl(cached.streamUrl);
             } catch (err) {
-                log.warn(`[stream] cached url failed: ${err.message} — falling back`);
+                log.warn(`[stream] cached url failed — falling back`);
                 urlCache.delete(videoId);
             }
         }
@@ -113,7 +104,7 @@ function _ytdlpStream(url, seekSeconds) {
             "--force-keyframes-at-cuts",
         );
     } else {
-        args.push("-f", "bestaudio[ext=webm][acodec=opus]/bestaudio[ext=opus]/bestaudio");
+        args.push("-f", AUDIO_FMT);
     }
 
     args.push(url);
