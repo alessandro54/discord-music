@@ -1,33 +1,13 @@
 import { spawn } from "node:child_process";
 import { join, dirname } from "node:path";
-import { Innertube, Log } from "youtubei.js";
-Log.setLevel(Log.Level.NONE);
 import { createAudioResource, StreamType } from "@discordjs/voice";
 import { log } from "../lib/logger.js";
 
 const YTDLP = process.env.YTDLP_PATH || join(dirname(process.argv[1]), "yt-dlp");
 const YTDLP_FAST = ["--no-check-formats", "--extractor-args", "youtube:skip=dash,hls"];
-const INFO_TTL = 5 * 60 * 60 * 1000; // 5h
-const URL_TTL  = 4 * 60 * 60 * 1000; // 4h — YouTube pre-signed URLs last ~6h
+const URL_TTL = 4 * 60 * 60 * 1000; // 4h — YouTube pre-signed URLs last ~6h
 
-let _yt = null;
-async function getInnertube() {
-    if (!_yt) _yt = await Innertube.create();
-    return _yt;
-}
-getInnertube().catch(() => {});
-
-const infoCache = new Map(); // videoId → { info, expiresAt }
-const urlCache  = new Map(); // videoId → { streamUrl, expiresAt }
-
-async function getCachedInfo(videoId) {
-    const hit = infoCache.get(videoId);
-    if (hit && hit.expiresAt > Date.now()) return hit.info;
-    const yt = await getInnertube();
-    const info = await yt.getInfo(videoId, { client: "IOS" });
-    infoCache.set(videoId, { info, expiresAt: Date.now() + INFO_TTL });
-    return info;
-}
+const urlCache = new Map(); // videoId → { streamUrl, expiresAt }
 
 function extractVideoId(url) {
     return url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)?.[1];
@@ -53,39 +33,15 @@ function ytdlpGetUrl(url) {
     });
 }
 
-export async function searchYoutube(query, limit = 5) {
-    const yt = await getInnertube();
-    const res = await yt.search(query, { type: "video" });
-    return (res.videos ?? []).slice(0, limit).map((v) => ({
-        title: v.title?.text ?? v.title ?? "Unknown",
-        url: `https://www.youtube.com/watch?v=${v.id}`,
-    }));
-}
-
-export function getSongMeta(url) {
-    const videoId = extractVideoId(url);
-    if (!videoId) return null;
-    const hit = infoCache.get(videoId);
-    if (!hit || hit.expiresAt <= Date.now()) return null;
-    const s = hit.info.basic_info?.duration ?? 0;
-    const m = Math.floor(s / 60), h = Math.floor(m / 60);
-    const duration = h > 0
-        ? `${h}:${String(m % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
-        : `${m}:${String(s % 60).padStart(2, "0")}`;
-    return { title: hit.info.basic_info?.title ?? "Unknown", url, duration };
-}
-
-export function prefetchSong(url) {
+// warm URL cache at submit time (single spawn, not during autocomplete)
+export function warmUrlCache(url) {
     const videoId = extractVideoId(url);
     if (!videoId) return;
-    getCachedInfo(videoId).catch(() => {});
-    // pre-extract stream URL so createStream can skip yt-dlp spawn at play time
     const cached = urlCache.get(videoId);
-    if (!cached || cached.expiresAt <= Date.now()) {
-        ytdlpGetUrl(url)
-            .then((streamUrl) => urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL }))
-            .catch(() => {});
-    }
+    if (cached && cached.expiresAt > Date.now()) return;
+    ytdlpGetUrl(url)
+        .then((streamUrl) => urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL }))
+        .catch(() => {});
 }
 
 export function getYoutubeInfo(url) {
