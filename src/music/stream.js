@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { join, dirname } from "node:path";
-import { Innertube } from "youtubei.js";
+import { Innertube, Log } from "youtubei.js";
+Log.setLevel(Log.Level.NONE);
 import { createAudioResource, StreamType } from "@discordjs/voice";
 import { log } from "../lib/logger.js";
 
