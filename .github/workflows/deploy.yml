@@ -66,3 +66,13 @@ jobs:
           put dist/REVISION.txt /REVISION.txt
           put -r dist/node_modules /node_modules
           EOF
+
+      - name: Clean up old deployments
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST=$(gh api repos/${{ github.repository }}/deployments --paginate | jq '.[0].id')
+          gh api repos/${{ github.repository }}/deployments --paginate | jq '.[].id' | grep -v "^$LATEST$" | while read id; do
+            gh api -X POST "repos/${{ github.repository }}/deployments/$id/statuses" -f state=inactive > /dev/null 2>&1 || true
+            gh api -X DELETE "repos/${{ github.repository }}/deployments/$id" > /dev/null 2>&1 || true
+          done
