@@ -1,125 +1,157 @@
-# Personal Music Discord Bot
+# oerni-bot
 
-A feature-rich personal Discord bot with music playback, moderation, and song history.
+A self-hosted Discord music bot that actually respects your server's CPU. Built on yt-dlp and WebmOpus passthrough — no transcoding for normal playback, ~5% CPU instead of 50%.
+
+> Fork it, configure it, run it. Your server, your data.
+
+---
+
+## Why this over other bots?
+
+Most music bots transcode everything through ffmpeg at 256k even when the source is already Opus. This bot streams WebM/Opus directly from YouTube — ffmpeg only runs for seeks.
+
+- **Low CPU** — WebmOpus passthrough, zero transcoding for normal play
+- **Reliable** — yt-dlp as the backend, not fragile scrapers
+- **No vendor lock-in** — self-hosted, your data stays yours
+- **Zero infra required** — SQLite by default, MySQL optional
+- **Web dashboard** — now playing, queue controls, server config
+- **Spotify support** — tracks, albums, playlists via YouTube resolution
 
 ---
 
 ## Features
 
-### Music
-- Play from YouTube URLs, YouTube search, or Spotify tracks/playlists/albums
-- Queue management with position tracking
-- Controls: pause, resume, skip, stop, seek
-- Now playing embed with interactive buttons
-- Song history stored in MySQL with user attribution
-
-### Moderation
-- Kick members
-- Timeout members
-
-### Utility
-- Coin flip
-- Poll creation
-- Server info
-- Help command
+- Play from YouTube (URL, search, playlist) or Spotify (track, album, playlist)
+- Queue with position tracking, skip, seek, pause/resume, stop
+- `/np` — now playing embed with inline buttons
+- Song history (SQLite by default)
+- Web dashboard with live queue + skip/pause/stop controls
+- Per-guild config (welcome channel, rules channel) via dashboard or `/setup`
+- Autocomplete shows recent history when query is empty
 
 ---
 
-## Stack
+## Quick start
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Node.js v20 |
-| Bot framework | discord.js v14 |
-| Voice | @discordjs/voice + @discordjs/opus |
-| Audio | ffmpeg-static + play-dl |
-| Database | MySQL 8 via mysql2 |
-| Package manager | Bun |
-| Bundler | esbuild |
-| CI/CD | GitHub Actions → Mamba Host (SFTP) |
+### 1. Create a Discord application
 
----
+1. Go to [discord.com/developers/applications](https://discord.com/developers/applications) → New Application
+2. Bot tab → Add Bot → copy token
+3. OAuth2 → URL Generator → `bot` + `applications.commands` → invite to your server
 
-## Environment Variables
-
-### Required
-
-| Variable | Description |
-|----------|-------------|
-| `BOT_TOKEN` | Discord bot token (from Dev Portal → Bot tab) |
-| `CLIENT_ID` | Discord application ID |
-| `GUILD_ID` | Discord server ID |
-
-### Optional
-
-| Variable | Description |
-|----------|-------------|
-| `SPOTIFY_CLIENT_ID` | Spotify app client ID — enables Spotify support |
-| `SPOTIFY_CLIENT_SECRET` | Spotify app client secret |
-| `DB_URL` | MySQL connection string — enables song history |
-
-### Example `.env`
+### 2. Configure
 
 ```env
-BOT_TOKEN=your_discord_bot_token
-CLIENT_ID=your_client_id
-GUILD_ID=your_guild_id
+# .env
+BOT_TOKEN=your_bot_token
+CLIENT_ID=your_application_id
+GUILD_ID=your_server_id
 
-SPOTIFY_CLIENT_ID=your_spotify_client_id
-SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+# Optional — Spotify support
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
 
-DB_URL=mysql://user:password@host:3306/dbname
+# Optional — override default SQLite path (./bot.db)
+# DB_URL=sqlite:./custom.db
+# DB_URL=mysql://user:pass@host:3306/dbname
+
+# Optional — protect the web dashboard
+DASHBOARD_TOKEN=your_secret_token
 ```
 
----
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `/play <query>` | Play from YouTube URL, search, or Spotify link |
-| `/skip` | Skip current song |
-| `/stop` | Stop playback and clear queue |
-| `/pause` | Pause playback |
-| `/resume` | Resume playback |
-| `/seek <seconds>` | Seek to position |
-| `/queue` | Show current queue |
-| `/np` | Now playing with controls |
-| `/history` | Last 10 songs played (requires DB) |
-| `/kick <user>` | Kick a member |
-| `/timeout <user>` | Timeout a member |
-| `/poll <question>` | Create a poll |
-| `/coinflip` | Flip a coin |
-| `/serverinfo` | Show server information |
-| `/help` | List all commands |
-
----
-
-## Development
+### 3. Run
 
 ```bash
-# Install dependencies
 bun install
-
-# Run locally (auto-restart)
-bun dev
-
-# Register slash commands with Discord
-bun run deploy
-
-# Build for production
-bun run build
+bun run deploy   # register slash commands (once)
+bun dev          # local dev with auto-restart
 ```
 
 ---
 
 ## Deployment
 
-Push to `main` — GitHub Actions automatically:
-1. Installs dependencies with Bun
-2. Bundles with esbuild → `dist/index.js`
-3. Copies native modules to `dist/node_modules/`
-4. Deploys `dist/` to Mamba Host via SFTP
+Push to `main` — GitHub Actions builds and deploys automatically via SFTP.
 
-**Mamba Host env vars required:** `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`  
-**Startup file:** `index.js`
+Tested on [Mamba Host](https://mamba.host) (Node.js v20). Works on any Node.js v20+ host.
+
+**Required secrets/vars in GitHub:** `SFTP_PASSWORD`, `SFTP_HOST`, `SFTP_PORT`, `SFTP_USERNAME`  
+**Required env vars on host:** `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`
+
+---
+
+## Dashboard
+
+The bot serves a web dashboard on `SERVER_PORT` (default `3000`).
+
+```
+http://your-host:port/         # now playing + queue controls
+http://your-host:port/config   # server configuration
+```
+
+If `DASHBOARD_TOKEN` is set, append `?token=<your_token>` to the URL. The token is logged on startup.
+
+---
+
+## Commands
+
+### Music
+| Command | Description |
+|---------|-------------|
+| `/play <query>` | YouTube URL/search, Spotify track/album/playlist |
+| `/np` | Now playing with pause/skip/stop buttons |
+| `/queue` | Current queue |
+| `/skip` | Skip current song |
+| `/seek <position>` | Seek to timestamp (`1:30` or `90`) |
+| `/pause` / `/resume` | Pause or resume |
+| `/stop` | Stop and clear queue |
+| `/history` | Last 10 songs played |
+
+### Server
+| Command | Description |
+|---------|-------------|
+| `/setup welcome #channel` | Set welcome channel |
+| `/setup rules #channel` | Set rules channel |
+| `/setup show` | Show current config |
+
+### Misc
+| Command | Description |
+|---------|-------------|
+| `/poll <question>` | Create a reaction poll |
+| `/coinflip` | Flip a coin |
+| `/kick` / `/timeout` | Moderation |
+| `/serverinfo` | Server stats |
+| `/help` | All commands |
+
+---
+
+## Stack
+
+| | |
+|---|---|
+| Runtime | Node.js v20 |
+| Bot | discord.js v14 |
+| Audio | @discordjs/voice · WebmOpus passthrough · ffmpeg for seeks |
+| Source | yt-dlp (binary, auto-downloaded in CI) |
+| Database | better-sqlite3 (default) · mysql2 (optional) |
+| Build | Bun + bun build |
+| CI/CD | GitHub Actions → SFTP |
+
+---
+
+## Development
+
+```bash
+bun install          # install deps
+bun dev              # run with auto-restart
+bun test             # run tests
+bun run lint         # Biome lint
+bun run build        # bundle → dist/index.js
+bun run deploy       # register slash commands
+```
+
+---
+
+## License
+
+MIT
