@@ -78,7 +78,7 @@ export async function createStream(url, seekSeconds = 0) {
             const info = await getCachedInfo(videoId);
             const stream = await info.download({ type: "audio", quality: "best", format: "webm" });
             const resource = createAudioResource(Readable.fromWeb(stream), {
-                inputType: StreamType.WebmOpus,
+                inputType: StreamType.Arbitrary,
             });
             resource._procs = [];
             return resource;
