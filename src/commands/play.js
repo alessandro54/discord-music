@@ -11,6 +11,7 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
+import { getYoutubeInfo } from "../music/stream.js";
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 
 function songFrom(v, requestedBy, requestedById) {
@@ -30,8 +31,7 @@ async function resolveSongs(query, requestedBy, requestedById) {
     }
 
     if (YOUTUBE_RE.test(query)) {
-        const v = await YouTube.getVideo(query);
-        if (!v) throw new Error("Video not found");
+        const v = await YouTube.getVideo(query) ?? await getYoutubeInfo(query);
         return { songs: [songFrom(v, requestedBy, requestedById)], playlistName: null };
     }
 
