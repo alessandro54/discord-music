@@ -1,9 +1,11 @@
 import { spawn } from 'child_process';
 import { createAudioResource, StreamType } from '@discordjs/voice';
 
+const YTDLP = () => process.env.YTDLP_PATH || 'yt-dlp';
+
 export function getYoutubeInfo(url) {
     return new Promise((resolve, reject) => {
-        const proc = spawn('yt-dlp', ['--dump-json', '--no-playlist', '--quiet', url]);
+        const proc = spawn(YTDLP(), ['--dump-json', '--no-playlist', '--quiet', url]);
         let data = '';
         proc.stdout.on('data', d => { data += d; });
         proc.stderr.on('data', () => {});
@@ -39,7 +41,7 @@ export function createStream(url, seekSeconds = 0) {
 
     ytdlpArgs.push(url);
 
-    const ytdlp = spawn('yt-dlp', ytdlpArgs);
+    const ytdlp = spawn(YTDLP(), ytdlpArgs);
 
     const ffmpeg = spawn('ffmpeg', [
         '-i', 'pipe:0',

@@ -37,7 +37,10 @@ log.info(`revision: ${COMMIT_URL ?? COMMIT}`);
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ytdlpBin = join(__dir, 'yt-dlp');
-if (existsSync(ytdlpBin)) try { chmodSync(ytdlpBin, 0o755); } catch {}
+if (existsSync(ytdlpBin)) {
+    try { chmodSync(ytdlpBin, 0o755); } catch {}
+    process.env.YTDLP_PATH = ytdlpBin;
+}
 process.env.PATH = `${__dir}${sep}${dirname(ffmpegPath)}${sep}${process.env.PATH}`;
 
 await initPlayDl();
