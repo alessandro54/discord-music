@@ -1,6 +1,7 @@
 name: Deploy to Mamba Host
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -26,11 +27,11 @@ jobs:
           echo "export const COMMIT = '${{ github.sha }}';" > src/buildInfo.js
           echo "export const COMMIT_URL = 'https://github.com/${{ github.repository }}/commit/${{ github.sha }}';" >> src/buildInfo.js
 
-      - run: bun run build && echo "${{ github.sha }}" > dist/REVISION
+      - run: bun run build && echo "${{ github.sha }}" > dist/REVISION.txt
 
       - name: Download yt-dlp
         run: |
-          curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_musl -o dist/yt-dlp
+          curl -L --fail https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_musllinux -o dist/yt-dlp
           chmod +x dist/yt-dlp
 
       - name: Copy native modules
@@ -51,6 +52,6 @@ jobs:
           sshpass -p "$SFTP_PASSWORD" sftp -P "$SFTP_PORT" -o StrictHostKeyChecking=no "$SFTP_USER@$SFTP_HOST" <<'EOF'
           put dist/index.js /index.js
           put dist/yt-dlp /yt-dlp
-          put dist/REVISION /REVISION
+          put dist/REVISION.txt /REVISION.txt
           put -r dist/node_modules /node_modules
           EOF
