@@ -40,10 +40,11 @@ export default {
 
         if (!interaction.isChatInputCommand()) return;
 
+        console.log(`[cmd] /${interaction.commandName} — ${interaction.user.tag} in #${interaction.channel?.name ?? 'unknown'}`);
         try {
             await command.execute(interaction, client);
         } catch (err) {
-            console.error(err);
+            console.error(`[cmd:error] /${interaction.commandName} — ${err.message}`);
             const msg = { content: 'Command failed.', ephemeral: true };
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp(msg);
