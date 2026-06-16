@@ -89,10 +89,10 @@ export default {
 
             if (YOUTUBE_RE.test(query)) return respond([]);
 
-            const results = await Promise.race([
-                searchYoutube(query, LIMITS.AUTOCOMPLETE_RESULTS),
-                deadline,
-            ]);
+            const ytsr = YouTube.search(query, { limit: LIMITS.AUTOCOMPLETE_RESULTS, type: "video" })
+                .then((r) => r.map((v) => ({ title: v.title, url: v.url })));
+            const inner = searchYoutube(query, LIMITS.AUTOCOMPLETE_RESULTS);
+            const results = await Promise.race([Promise.any([ytsr, inner]), deadline]);
             return respond(results.map((v) => ({ name: v.title.slice(0, 100), value: v.url })));
         } catch (err) {
             if (err.message !== "timeout") log.error(`[autocomplete] ${err.message}`);
