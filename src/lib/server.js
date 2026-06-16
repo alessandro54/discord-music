@@ -116,6 +116,8 @@ export function startServer(port, queues, client) {
         res.end("Not found");
     }).listen(port, () => {
         const token = process.env.DASHBOARD_TOKEN;
-        log.info(`dashboard on :${port}${token ? `?token=${token}` : ""}`);
+        const host = process.env.DASHBOARD_HOST ?? `localhost`;
+        const qs = token ? `?token=${token}` : "";
+        log.info(`dashboard → http://${host}:${port}/${qs}`);
     });
 }
