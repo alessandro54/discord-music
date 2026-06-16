@@ -10,7 +10,7 @@
     "test": "bun test",
     "lint": "biome check src/",
     "format": "biome format --write src/",
-    "build": "bun build src/index.js --target=node --format=esm --outfile=dist/index.js --external @discordjs/opus --external ffmpeg-static --external @snazzah/davey --external @snazzah/davey-linux-x64-musl --external @snazzah/davey-linux-x64-gnu --banner \"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\""
+    "build": "bun build src/index.js --target=node --format=esm --outfile=dist/index.js --external @discordjs/opus --external ffmpeg-static --external @snazzah/davey --external @snazzah/davey-linux-x64-musl --external @snazzah/davey-linux-x64-gnu"
   },
   "dependencies": {
     "@discordjs/opus": "^0.9.0",
