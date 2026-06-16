@@ -22,35 +22,39 @@ mock.module('@discordjs/voice', () => ({
     StreamType: { WebmOpus: 'webm/opus', Arbitrary: 'arbitrary', OggOpus: 'ogg/opus' },
 }));
 
+mock.module('youtubei.js', () => ({
+    Innertube: { create: mock(async () => ({})) },
+}));
+
 const { createStream } = await import('../../src/music/stream.js');
 
 describe('createStream', () => {
-    test('no seek: uses WebmOpus, no ffmpeg', () => {
+    test('no seek: uses WebmOpus, no ffmpeg', async () => {
         spawned.length = 0;
-        const resource = createStream('https://yt.be/abc');
+        const resource = await createStream('https://yt.be/abc');
         expect(resource.inputType).toBe(StreamType.WebmOpus);
         expect(spawned).toHaveLength(1);
         expect(spawned[0].cmd).toContain('yt-dlp');
     });
 
-    test('no seek: requests webm format from yt-dlp', () => {
+    test('no seek: requests webm format from yt-dlp', async () => {
         spawned.length = 0;
-        createStream('https://yt.be/abc');
+        await createStream('https://yt.be/abc');
         const fmt = spawned[0].args.find((_, i, a) => a[i - 1] === '-f');
         expect(fmt).toContain('webm');
     });
 
-    test('seek: uses Arbitrary, spawns ffmpeg', () => {
+    test('seek: uses Arbitrary, spawns ffmpeg', async () => {
         spawned.length = 0;
-        const resource = createStream('https://yt.be/abc', 30);
+        const resource = await createStream('https://yt.be/abc', 30);
         expect(resource.inputType).toBe(StreamType.Arbitrary);
         expect(spawned).toHaveLength(2);
         expect(spawned[1].cmd).toBe('ffmpeg');
     });
 
-    test('seek: passes download-sections to yt-dlp', () => {
+    test('seek: passes download-sections to yt-dlp', async () => {
         spawned.length = 0;
-        createStream('https://yt.be/abc', 60);
+        await createStream('https://yt.be/abc', 60);
         expect(spawned[0].args).toContain('--download-sections');
         expect(spawned[0].args).toContain('*60-inf');
     });

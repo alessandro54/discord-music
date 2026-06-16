@@ -87,7 +87,13 @@ export function startServer(port, queues, client) {
                 "Cache-Control": "no-cache",
                 Connection: "keep-alive",
             });
-            const send = () => res.write(`data: ${JSON.stringify(getState(queues, client))}\n\n`);
+            let last = "";
+            const send = () => {
+                const payload = JSON.stringify(getState(queues, client));
+                if (payload === last) return;
+                last = payload;
+                res.write(`data: ${payload}\n\n`);
+            };
             send();
             const interval = setInterval(send, 2000);
             req.on("close", () => clearInterval(interval));
