@@ -1,14 +1,15 @@
-import { SlashCommandBuilder } from 'discord.js';
-import { queues } from '../music/queues.js';
+import { SlashCommandBuilder } from "discord.js";
+import { requirePlaying } from "../music/guards.js";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('skip')
-        .setDescription('Skip the current song'),
+        .setName("skip")
+        .setDescription("Skip the current song"),
     async execute(interaction) {
-        const queue = queues.get(interaction.guildId);
-        if (!queue?.playing) return interaction.reply({ content: 'Nothing playing.', ephemeral: true });
+        const queue = requirePlaying(interaction);
+        if (!queue) return;
+        const title = queue.current?.title ?? "song";
         queue.skip();
-        await interaction.reply(`⏭️ Skipped **${queue.current?.title ?? 'song'}**.`);
-    }
+        await interaction.reply(`⏭️ Skipped **${title}**.`);
+    },
 };

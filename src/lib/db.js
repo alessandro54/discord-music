@@ -1,11 +1,11 @@
-import mysql from 'mysql2/promise';
-import { log } from './logger.js';
+import mysql from "mysql2/promise";
+import { log } from "./logger.js";
 
 let pool;
 
 export async function initDb() {
     if (!process.env.DB_URL) {
-        log.info('DB_URL missing — song history disabled');
+        log.info("DB_URL missing — song history disabled");
         return;
     }
     pool = mysql.createPool(process.env.DB_URL);
@@ -21,15 +21,22 @@ export async function initDb() {
         INDEX idx_guild (guild_id),
         INDEX idx_user  (user_id)
     )`);
-    log.db('Connected, tables ready');
+    log.db("Connected, tables ready");
 }
 
-export async function saveSong({ guildId, userId, userTag, title, url, duration }) {
+export async function saveSong({
+    guildId,
+    userId,
+    userTag,
+    title,
+    url,
+    duration,
+}) {
     if (!pool) return;
     try {
         await pool.query(
-            'INSERT INTO song_history (guild_id, user_id, user_tag, title, url, duration) VALUES (?, ?, ?, ?, ?, ?)',
-            [guildId, userId, userTag, title, url, String(duration)]
+            "INSERT INTO song_history (guild_id, user_id, user_tag, title, url, duration) VALUES (?, ?, ?, ?, ?, ?)",
+            [guildId, userId, userTag, title, url, String(duration)],
         );
     } catch (err) {
         log.error(`saveSong: ${err.message}`);
@@ -39,8 +46,8 @@ export async function saveSong({ guildId, userId, userTag, title, url, duration 
 export async function getHistory(guildId, limit = 10) {
     if (!pool) return [];
     const [rows] = await pool.query(
-        'SELECT title, url, user_tag, duration, played_at FROM song_history WHERE guild_id = ? ORDER BY played_at DESC LIMIT ?',
-        [guildId, limit]
+        "SELECT title, url, user_tag, duration, played_at FROM song_history WHERE guild_id = ? ORDER BY played_at DESC LIMIT ?",
+        [guildId, limit],
     );
     return rows;
 }
