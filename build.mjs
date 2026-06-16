@@ -5,10 +5,13 @@ await build({
     entryPoints: ['src/index.js'],
     bundle: true,
     platform: 'node',
-    target: 'node22',
+    target: 'node20',
     outfile: 'dist/index.js',
     format: 'esm',
     external: ['@discordjs/opus', 'ffmpeg-static', '@snazzah/davey', '@snazzah/davey-linux-x64-musl', '@snazzah/davey-linux-x64-gnu'],
+    banner: {
+        js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
+    },
 });
 
 const natives = [
