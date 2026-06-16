@@ -5,18 +5,19 @@ import { YouTube } from 'youtube-sr';
 import { queues } from '../music/queues.js';
 import { GuildQueue } from '../music/GuildQueue.js';
 import { resolveSpotify, getTrackMeta, isSpotifyUrl } from '../music/spotify.js';
+import { log } from '../logger.js';
 
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 
-async function resolveSongs(query, requestedBy) {
+async function resolveSongs(query, requestedBy, requestedById) {
     if (isSpotifyUrl(query)) {
-        return resolveSpotify(query, requestedBy);
+        return resolveSpotify(query, requestedBy, requestedById);
     }
 
     if (YOUTUBE_RE.test(query)) {
         const v = await getYoutubeInfo(query);
         return {
-            songs: [{ title: v.title, url: v.url, duration: v.duration, requestedBy, spotifyTrack: null }],
+            songs: [{ title: v.title, url: v.url, duration: v.duration, requestedBy, requestedById, spotifyTrack: null }],
             playlistName: null,
         };
     }
@@ -25,7 +26,7 @@ async function resolveSongs(query, requestedBy) {
     if (!results.length) return { songs: [], playlistName: null };
     const v = results[0];
     return {
-        songs: [{ title: v.title, url: v.url, duration: v.duration?.timestamp ?? 'Unknown', requestedBy, spotifyTrack: null }],
+        songs: [{ title: v.title, url: v.url, duration: v.duration?.timestamp ?? 'Unknown', requestedBy, requestedById, spotifyTrack: null }],
         playlistName: null,
     };
 }
@@ -71,7 +72,7 @@ export default {
 
         let resolved;
         try {
-            resolved = await resolveSongs(query, interaction.user.tag);
+            resolved = await resolveSongs(query, interaction.user.tag, interaction.user.id);
         } catch (err) {
             console.error('[play] resolveSongs error:', err);
             return interaction.editReply('Could not find that song or playlist.');
@@ -95,6 +96,7 @@ export default {
 
         if (songs.length === 1) {
             const positionBefore = queue.songs.length;
+            log.music(`Enqueued ${log.bold(songs[0].title)} ${log.gray(`by ${interaction.user.tag}`)}`);
             await queue.add(songs[0]);
             const song = songs[0];
             const isFirst = positionBefore === 0;

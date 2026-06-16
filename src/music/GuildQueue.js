@@ -1,6 +1,8 @@
 import { createAudioPlayer, AudioPlayerStatus, VoiceConnectionStatus } from '@discordjs/voice';
 import { YouTube } from 'youtube-sr';
 import { createStream } from './stream.js';
+import { log } from '../logger.js';
+import { saveSong } from '../db.js';
 
 export class GuildQueue {
     constructor(guildId, onDestroy) {
@@ -22,6 +24,7 @@ export class GuildQueue {
                 this._playNext();
             } else {
                 this.playing = false;
+                log.music(`Queue empty in guild ${this.guildId}`);
                 this._idleTimeout = setTimeout(() => this.destroy(), 30_000);
             }
         });
@@ -91,8 +94,17 @@ export class GuildQueue {
             this.resource = resource;
             this.player.play(resource);
             this.playing = true;
+            log.music(`${log.bold(song.title)} ${log.gray(`· ${song.duration} · by ${song.requestedBy}`)}`);
+            saveSong({
+                guildId: this.guildId,
+                userId: song.requestedById,
+                userTag: song.requestedBy,
+                title: song.title,
+                url: song.url,
+                duration: song.duration,
+            });
         } catch (err) {
-            console.error(`[Queue ${this.guildId}] Stream error:`, err.message);
+            log.error(`[Queue ${this.guildId}] Stream: ${err.message}`);
             this.songs.shift();
             if (this.songs.length > 0) await this._playNext();
             else this.playing = false;

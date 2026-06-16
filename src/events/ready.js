@@ -1,8 +1,10 @@
+import { log } from '../logger.js';
+
 export default {
     name: 'clientReady',
     once: true,
     execute(client) {
-        console.log(`[ready] ${client.user.tag} — ${client.guilds.cache.size} guild(s)`);
+        log.info(`${log.bold(client.user.tag)} ready — ${client.guilds.cache.size} guild(s)`);
         client.user.setActivity('/help');
     }
 };

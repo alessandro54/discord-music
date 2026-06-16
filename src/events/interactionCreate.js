@@ -1,5 +1,6 @@
 import { queues } from '../music/queues.js';
 import { buildNpEmbed, buildNpComponents } from '../commands/np.js';
+import { log } from '../logger.js';
 
 export default {
     name: 'interactionCreate',
@@ -40,11 +41,11 @@ export default {
 
         if (!interaction.isChatInputCommand()) return;
 
-        console.log(`[cmd] /${interaction.commandName} — ${interaction.user.tag} in #${interaction.channel?.name ?? 'unknown'}`);
+        log.cmd(`${log.bold('/' + interaction.commandName)} — ${interaction.user.tag} in #${interaction.channel?.name ?? 'unknown'}`);
         try {
             await command.execute(interaction, client);
         } catch (err) {
-            console.error(`[cmd:error] /${interaction.commandName} — ${err.message}`);
+            log.error(`/${interaction.commandName} — ${err.message}`);
             const msg = { content: 'Command failed.', ephemeral: true };
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp(msg);

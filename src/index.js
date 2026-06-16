@@ -4,9 +4,12 @@ import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import { dirname, sep } from 'path';
 import ffmpegPath from 'ffmpeg-static';
 import { initPlayDl } from './music/initPlayDl.js';
+import { initDb } from './db.js';
+import { log } from './logger.js';
 
 import coinflip from './commands/coinflip.js';
 import help from './commands/help.js';
+import history from './commands/history.js';
 import kick from './commands/kick.js';
 import np from './commands/np.js';
 import pause from './commands/pause.js';
@@ -24,12 +27,13 @@ import guildMemberAdd from './events/guildMemberAdd.js';
 import interactionCreate from './events/interactionCreate.js';
 import ready from './events/ready.js';
 
-process.on('unhandledRejection', err => console.error('[unhandledRejection]', err));
-process.on('uncaughtException', err => console.error('[uncaughtException]', err));
+process.on('unhandledRejection', err => log.error(`unhandledRejection: ${err}`));
+process.on('uncaughtException',  err => log.error(`uncaughtException: ${err}`));
 
 process.env.PATH = `${dirname(ffmpegPath)}${sep}${process.env.PATH}`;
 
 await initPlayDl();
+await initDb();
 
 const client = new Client({
     intents: [
@@ -43,7 +47,7 @@ const client = new Client({
 
 client.commands = new Collection();
 
-for (const cmd of [coinflip, help, kick, np, pause, play, poll, queue, resume, seek, serverinfo, skip, stop, timeout]) {
+for (const cmd of [coinflip, help, history, kick, np, pause, play, poll, queue, resume, seek, serverinfo, skip, stop, timeout]) {
     if (cmd?.data && cmd?.execute) client.commands.set(cmd.data.name, cmd);
 }
 
