@@ -1,46 +1,125 @@
 # Personal Music Discord Bot
 
-Personal Discord bot. Built with discord.js v14.
+A feature-rich personal Discord bot with music playback, moderation, and song history.
+
+---
 
 ## Features
 
-- **Music**: play, pause, resume, skip, stop, seek, queue, now-playing — powered by play-dl
-- **Moderation**: kick, timeout
-- **Utility**: coinflip, poll, serverinfo, help
+### Music
+- Play from YouTube URLs, YouTube search, or Spotify tracks/playlists/albums
+- Queue management with position tracking
+- Controls: pause, resume, skip, stop, seek
+- Now playing embed with interactive buttons
+- Song history stored in MySQL with user attribution
 
-## Setup
+### Moderation
+- Kick members
+- Timeout members
 
-```bash
-pnpm install
+### Utility
+- Coin flip
+- Poll creation
+- Server info
+- Help command
+
+---
+
+## Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Runtime | Node.js v20 |
+| Bot framework | discord.js v14 |
+| Voice | @discordjs/voice + @discordjs/opus |
+| Audio | ffmpeg-static + play-dl |
+| Database | MySQL 8 via mysql2 |
+| Package manager | Bun |
+| Bundler | esbuild |
+| CI/CD | GitHub Actions → Mamba Host (SFTP) |
+
+---
+
+## Environment Variables
+
+### Required
+
+| Variable | Description |
+|----------|-------------|
+| `BOT_TOKEN` | Discord bot token (from Dev Portal → Bot tab) |
+| `CLIENT_ID` | Discord application ID |
+| `GUILD_ID` | Discord server ID |
+
+### Optional
+
+| Variable | Description |
+|----------|-------------|
+| `SPOTIFY_CLIENT_ID` | Spotify app client ID — enables Spotify support |
+| `SPOTIFY_CLIENT_SECRET` | Spotify app client secret |
+| `DB_URL` | MySQL connection string — enables song history |
+
+### Example `.env`
+
+```env
+BOT_TOKEN=your_discord_bot_token
+CLIENT_ID=your_client_id
+GUILD_ID=your_guild_id
+
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+
+DB_URL=mysql://user:password@host:3306/dbname
 ```
 
-Create `.env`:
-
-```
-DISCORD_TOKEN=your_token
-CLIENT_ID=1513765585794895872
-GUILD_ID=414892529427939338
-```
+---
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `pnpm start` | Run bot |
-| `pnpm dev` | Run with auto-restart |
-| `pnpm deploy` | Register slash commands |
+| `/play <query>` | Play from YouTube URL, search, or Spotify link |
+| `/skip` | Skip current song |
+| `/stop` | Stop playback and clear queue |
+| `/pause` | Pause playback |
+| `/resume` | Resume playback |
+| `/seek <seconds>` | Seek to position |
+| `/queue` | Show current queue |
+| `/np` | Now playing with controls |
+| `/history` | Last 10 songs played (requires DB) |
+| `/kick <user>` | Kick a member |
+| `/timeout <user>` | Timeout a member |
+| `/poll <question>` | Create a poll |
+| `/coinflip` | Flip a coin |
+| `/serverinfo` | Show server information |
+| `/help` | List all commands |
 
-## Architecture
+---
 
-- `src/index.js` — bootstraps client, auto-loads commands and events
-- `src/commands/` — slash commands, each exports `{ data, execute }`
-- `src/events/` — event handlers, each exports `{ name, once?, execute }`
-- `src/music/` — music queue/player logic
+## Development
 
-Drop a file in `commands/` or `events/` and it loads automatically. Run `pnpm deploy` after adding or changing commands.
+```bash
+# Install dependencies
+bun install
 
-## Stack
+# Run locally (auto-restart)
+bun dev
 
-- Node.js + discord.js v14
-- @discordjs/voice + play-dl for music
-- pnpm
+# Register slash commands with Discord
+bun run deploy
+
+# Build for production
+bun run build
+```
+
+---
+
+## Deployment
+
+Push to `main` — GitHub Actions automatically:
+1. Installs dependencies with Bun
+2. Bundles with esbuild → `dist/index.js`
+3. Copies native modules to `dist/node_modules/`
+4. Deploys `dist/` to Mamba Host via SFTP
+
+**Mamba Host env vars required:** `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`  
+**Startup file:** `index.js`
