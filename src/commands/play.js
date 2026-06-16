@@ -62,8 +62,7 @@ async function resolveSongs(query, requestedBy, requestedById) {
     const hit = results[0];
     const song = songFrom(hit, requestedBy, requestedById);
     if (song.duration === "?:??" && hit.url) {
-        const info = await getYoutubeInfo(hit.url).catch(() => null);
-        if (info?.duration) song.duration = info.duration;
+        getYoutubeInfo(hit.url).then((info) => { if (info?.duration) song.duration = info.duration; }).catch(() => {});
     }
     return { songs: [song], playlistName: null };
 }
@@ -163,12 +162,12 @@ export default {
 
         if (songs.length === 1) {
             const positionBefore = queue.songs.length;
-            log.music(
-                `Enqueued ${log.bold(songs[0].title)} ${log.gray(`by ${interaction.user.tag}`)}`,
-            );
-            await queue.add(songs[0]);
-            const song = songs[0];
             const isFirst = positionBefore === 0;
+            const song = songs[0];
+            log.music(
+                `Enqueued ${log.bold(song.title)} ${log.gray(`by ${interaction.user.tag}`)}`,
+            );
+            queue.add(song);
             const e = embed()
                 .setTitle(isFirst ? "🎵 Now Playing" : "➕ Added to Queue")
                 .setDescription(`**${song.title}**`)
