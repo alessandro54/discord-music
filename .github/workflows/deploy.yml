@@ -29,7 +29,7 @@ jobs:
 
       - name: Download yt-dlp
         run: |
-          curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o dist/yt-dlp
+          curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_musl -o dist/yt-dlp
           chmod +x dist/yt-dlp
 
       - name: Copy native modules
