@@ -12,7 +12,7 @@ for (const file of readdirSync(resolve(__dirname, 'commands')).filter(f => f.end
     if (command.default?.data) commands.push(command.default.data.toJSON());
 }
 
-const rest = new REST().setToken(process.env.BOT_TOKEN);
+const rest = new REST().setToken(process.env.BOT_TOKEN ?? process.env.DISCORD_TOKEN);
 
 console.log(`Deploying ${commands.length} commands...`);
 await rest.put(
