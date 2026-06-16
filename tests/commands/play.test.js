@@ -43,6 +43,7 @@ const { default: playCmd } = await import('../../src/commands/play.js');
 
 const makeInteraction = (overrides = {}) => ({
     deferReply: mock(() => Promise.resolve()),
+    reply: mock(() => Promise.resolve()),
     editReply: mock(() => Promise.resolve()),
     guildId: 'guild1',
     user: { tag: 'user#0001', id: '123' },
@@ -56,7 +57,7 @@ describe('/play guards', () => {
     test('no voice channel → error reply', async () => {
         const i = makeInteraction();
         await playCmd.execute(i);
-        expect(i.editReply).toHaveBeenCalledWith('Join a voice channel first.');
+        expect(i.reply.mock.calls[0][0].content).toBe('Join a voice channel first.');
     });
 
     test('missing Connect permission → error reply', async () => {
@@ -71,6 +72,6 @@ describe('/play guards', () => {
             },
         });
         await playCmd.execute(i);
-        expect(i.editReply.mock.calls[0][0]).toContain("don't have permission");
+        expect(i.reply.mock.calls[0][0].content).toContain("don't have permission");
     });
 });

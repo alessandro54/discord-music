@@ -115,11 +115,9 @@ export default {
                 .setAutocomplete(true),
         ),
     async execute(interaction) {
-        await interaction.deferReply();
-
         const voiceChannel = interaction.member.voice.channel;
         if (!voiceChannel) {
-            return interaction.editReply("Join a voice channel first.");
+            return interaction.reply({ content: "Join a voice channel first.", ephemeral: true });
         }
 
         const perms = voiceChannel.permissionsFor(interaction.guild.members.me);
@@ -127,12 +125,14 @@ export default {
             !perms.has(PermissionFlagsBits.Connect) ||
             !perms.has(PermissionFlagsBits.Speak)
         ) {
-            return interaction.editReply(
-                "I don't have permission to join or speak in that voice channel.",
-            );
+            return interaction.reply({
+                content: "I don't have permission to join or speak in that voice channel.",
+                ephemeral: true,
+            });
         }
 
         const query = interaction.options.getString("query");
+        await interaction.reply({ content: `🔍 Searching for **${query}**…` });
 
         let resolved;
         try {
