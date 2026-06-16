@@ -13,6 +13,7 @@ import {
 } from "../music/spotify.js";
 import { getYoutubeInfo } from "../music/stream.js";
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
+const YOUTUBE_LIST_RE = /[?&]list=/;
 
 function songFrom(v, requestedBy, requestedById) {
     return {
@@ -28,6 +29,17 @@ function songFrom(v, requestedBy, requestedById) {
 async function resolveSongs(query, requestedBy, requestedById) {
     if (isSpotifyUrl(query)) {
         return resolveSpotify(query, requestedBy, requestedById);
+    }
+
+    if (YOUTUBE_RE.test(query) && YOUTUBE_LIST_RE.test(query)) {
+        const playlist = await YouTube.getPlaylist(query);
+        if (!playlist) throw new Error("Playlist not found");
+        await playlist.fetch(LIMITS.PLAYLIST_MAX);
+        const songs = playlist.videos
+            .slice(0, LIMITS.PLAYLIST_MAX)
+            .filter((v) => v.title && v.url)
+            .map((v) => songFrom(v, requestedBy, requestedById));
+        return { songs, playlistName: playlist.title };
     }
 
     if (YOUTUBE_RE.test(query)) {
