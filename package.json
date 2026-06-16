@@ -6,21 +6,22 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "node --watch src/index.js",
-    "deploy": "node src/deploy-commands.js",
-    "build": "esbuild src/index.js --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --external:@discordjs/opus --external:ffmpeg-static --external:@snazzah/davey --external:@snazzah/davey-linux-x64-musl --external:@snazzah/davey-linux-x64-gnu \"--banner:js=import { createRequire } from 'module'; const require = createRequire(import.meta.url);\""
+    "deploy": "node src/deployCommands.js",
+    "test": "bun test",
+    "lint": "biome check src/",
+    "format": "biome format --write src/",
+    "build": "bun build src/index.js --target=node --format=esm --outfile=dist/index.js --external @discordjs/opus --external ffmpeg-static --external @snazzah/davey --external @snazzah/davey-linux-x64-musl --external @snazzah/davey-linux-x64-gnu --banner \"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\""
   },
   "dependencies": {
+    "@discordjs/opus": "^0.9.0",
+    "@discordjs/voice": "^0.19.0",
     "discord.js": "^14.16.0",
     "dotenv": "^16.0.0",
-    "@discordjs/voice": "^0.19.0",
-    "play-dl": "^1.9.7",
-    "@discordjs/opus": "^0.9.0",
-    "libsodium-wrappers": "^0.7.15",
-    "youtube-sr": "^4.3.11",
     "ffmpeg-static": "^5.2.0",
-    "mysql2": "^3.11.0"
+    "mysql2": "^3.11.0",
+    "youtube-sr": "^4.3.11"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "@biomejs/biome": "^2.5.0"
   }
 }

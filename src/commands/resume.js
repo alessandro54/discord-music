@@ -1,14 +1,14 @@
-import { SlashCommandBuilder } from 'discord.js';
-import { queues } from '../music/queues.js';
+import { SlashCommandBuilder } from "discord.js";
+import { requirePlaying } from "../music/guards.js";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('resume')
-        .setDescription('Resume playback'),
+        .setName("resume")
+        .setDescription("Resume playback"),
     async execute(interaction) {
-        const queue = queues.get(interaction.guildId);
-        if (!queue) return interaction.reply({ content: 'Nothing playing.', ephemeral: true });
+        const queue = requirePlaying(interaction);
+        if (!queue) return;
         queue.resume();
-        await interaction.reply('▶️ Resumed.');
-    }
+        await interaction.reply("▶️ Resumed.");
+    },
 };
