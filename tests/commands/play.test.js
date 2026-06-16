@@ -30,6 +30,7 @@ mock.module('../../src/lib/logger.js', () => ({
 
 mock.module('../../src/lib/db.js', () => ({
     saveSong: mock(() => {}),
+    getHistory: mock(() => Promise.resolve([])),
 }));
 
 mock.module('../../src/music/spotify.js', () => ({

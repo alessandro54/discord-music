@@ -4,6 +4,7 @@ import { YouTube } from "youtube-sr";
 import { COLORS, LIMITS } from "../lib/constants.js";
 import { embed } from "../lib/embeds.js";
 import { log } from "../lib/logger.js";
+import { getHistory } from "../lib/db.js";
 import { GuildQueue, queues } from "../music/guildQueue.js";
 import {
     getTrackMeta,
@@ -57,7 +58,12 @@ async function resolveSongs(query, requestedBy, requestedById) {
 export default {
     async autocomplete(interaction) {
         const query = interaction.options.getFocused();
-        if (query.length < 2) return interaction.respond([]);
+        if (query.length < 2) {
+            const recent = await getHistory(interaction.guildId, LIMITS.AUTOCOMPLETE_RESULTS);
+            return interaction.respond(
+                recent.map((s) => ({ name: s.title.slice(0, 100), value: s.url })),
+            );
+        }
 
         try {
             if (isSpotifyUrl(query)) {

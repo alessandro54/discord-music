@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { chmodSync, existsSync } from "node:fs";
-import { createServer } from "node:http";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client, Collection, GatewayIntentBits } from "discord.js";
@@ -26,6 +25,8 @@ import ready from "./events/ready.js";
 import { COMMIT, COMMIT_URL } from "./lib/buildInfo.js";
 import { initDb } from "./lib/db.js";
 import { log } from "./lib/logger.js";
+import { startServer } from "./lib/server.js";
+import { queues } from "./music/guildQueue.js";
 
 process.on("unhandledRejection", (err) =>
     log.error(`unhandledRejection: ${err}`),
@@ -86,6 +87,6 @@ for (const event of [guildMemberAdd, interactionCreate, ready]) {
 }
 
 const port = process.env.SERVER_PORT || process.env.PORT || 3000;
-createServer((_, res) => res.end("OK")).listen(port);
+startServer(port, queues, client);
 
 client.login(process.env.BOT_TOKEN);
