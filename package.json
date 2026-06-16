@@ -4,9 +4,10 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node dist/index.js",
     "dev": "node --watch src/index.js",
-    "deploy": "node src/deploy-commands.js"
+    "deploy": "node src/deploy-commands.js",
+    "build": "node build.mjs"
   },
   "dependencies": {
     "discord.js": "^14.16.0",
@@ -18,5 +19,7 @@
     "youtube-sr": "^4.3.11",
     "ffmpeg-static": "^5.2.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
 }

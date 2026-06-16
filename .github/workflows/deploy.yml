@@ -23,6 +23,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm build
+
       - name: Deploy via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
@@ -30,7 +32,7 @@ jobs:
           port: ${{ vars.SFTP_PORT }}
           username: ${{ vars.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          local_path: ./*
+          local_path: ./dist/*
           remote_path: /
           sftp_only: true
           delete_remote_files: false

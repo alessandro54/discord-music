@@ -1,21 +1,32 @@
 import 'dotenv/config';
 import { createServer } from 'http';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
-import { readdirSync } from 'fs';
-import { resolve, dirname, sep } from 'path';
-import { fileURLToPath } from 'url';
-import { initPlayDl } from './music/initPlayDl.js';
+import { dirname, sep } from 'path';
 import ffmpegPath from 'ffmpeg-static';
+import { initPlayDl } from './music/initPlayDl.js';
 
-const port = process.env.SERVER_PORT || process.env.PORT || 3000;
-createServer((_, res) => res.end('OK')).listen(port);
+import coinflip from './commands/coinflip.js';
+import help from './commands/help.js';
+import kick from './commands/kick.js';
+import np from './commands/np.js';
+import pause from './commands/pause.js';
+import play from './commands/play.js';
+import poll from './commands/poll.js';
+import queue from './commands/queue.js';
+import resume from './commands/resume.js';
+import seek from './commands/seek.js';
+import serverinfo from './commands/serverinfo.js';
+import skip from './commands/skip.js';
+import stop from './commands/stop.js';
+import timeout from './commands/timeout.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import guildMemberAdd from './events/guildMemberAdd.js';
+import interactionCreate from './events/interactionCreate.js';
+import ready from './events/ready.js';
 
 process.on('unhandledRejection', err => console.error('[unhandledRejection]', err));
 process.on('uncaughtException', err => console.error('[uncaughtException]', err));
 
-// Add bundled ffmpeg to PATH for audio transcoding
 process.env.PATH = `${dirname(ffmpegPath)}${sep}${process.env.PATH}`;
 
 await initPlayDl();
@@ -32,23 +43,16 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// Load commands
-for (const file of readdirSync(resolve(__dirname, 'commands')).filter(f => f.endsWith('.js'))) {
-    const command = await import(`./commands/${file}`);
-    if (command.default?.data && command.default?.execute) {
-        client.commands.set(command.default.data.name, command.default);
-    }
+for (const cmd of [coinflip, help, kick, np, pause, play, poll, queue, resume, seek, serverinfo, skip, stop, timeout]) {
+    if (cmd?.data && cmd?.execute) client.commands.set(cmd.data.name, cmd);
 }
 
-// Load events
-for (const file of readdirSync(resolve(__dirname, 'events')).filter(f => f.endsWith('.js'))) {
-    const event = await import(`./events/${file}`);
-    const { name, once, execute } = event.default;
-    if (once) {
-        client.once(name, (...args) => execute(...args, client));
-    } else {
-        client.on(name, (...args) => execute(...args, client));
-    }
+for (const event of [guildMemberAdd, interactionCreate, ready]) {
+    const { name, once, execute } = event;
+    client[once ? 'once' : 'on'](name, (...args) => execute(...args, client));
 }
+
+const port = process.env.SERVER_PORT || process.env.PORT || 3000;
+createServer((_, res) => res.end('OK')).listen(port);
 
 client.login(process.env.BOT_TOKEN);
