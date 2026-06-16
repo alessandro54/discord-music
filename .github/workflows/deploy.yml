@@ -3,6 +3,11 @@ name: Deploy to Mamba Host
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**/*.js'
+      - 'build.mjs'
+      - 'package.json'
+      - 'bun.lock'
 
 jobs:
   deploy:
