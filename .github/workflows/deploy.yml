@@ -7,6 +7,7 @@ on:
       - 'src/**/*.js'
       - 'package.json'
       - 'bun.lock'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   deploy:
