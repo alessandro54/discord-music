@@ -11,7 +11,7 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
-import { getYoutubeInfo, getSongMeta, searchYoutube } from "../music/stream.js";
+import { getYoutubeInfo, getSongMeta, prefetchSong, searchYoutube } from "../music/stream.js";
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 const YOUTUBE_LIST_RE = /[?&]list=/;
 
@@ -53,8 +53,9 @@ async function resolveSongs(query, requestedBy, requestedById) {
     }
 
     if (YOUTUBE_RE.test(query)) {
+        prefetchSong(query); // warm InnerTube cache in parallel with metadata fetch
         const cached = getSongMeta(query);
-        if (cached) return { songs: [songFrom(cached, requestedBy, requestedById)], playlistName: null };
+        if (cached) return { songs: [{ ...cached, requestedBy, requestedById, spotifyTrack: null }], playlistName: null };
         const v = await YouTube.getVideo(query) ?? await getYoutubeInfo(query);
         return { songs: [songFrom(v, requestedBy, requestedById)], playlistName: null };
     }
@@ -94,6 +95,7 @@ export default {
                 .then((r) => r.map((v) => ({ title: v.title, url: v.url })));
             const inner = searchYoutube(query, LIMITS.AUTOCOMPLETE_RESULTS);
             const results = await Promise.race([Promise.any([ytsr, inner]), deadline]);
+            results.slice(0, 3).forEach((v) => prefetchSong(v.url));
             return respond(results.map((v) => ({ name: v.title.slice(0, 100), value: v.url })));
         } catch (err) {
             if (err.message !== "timeout") log.error(`[autocomplete] ${err.message}`);
