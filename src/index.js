@@ -51,4 +51,4 @@ for (const file of readdirSync(resolve(__dirname, 'events')).filter(f => f.endsW
     }
 }
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.BOT_TOKEN);
