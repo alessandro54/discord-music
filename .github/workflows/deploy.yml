@@ -40,14 +40,15 @@ jobs:
           done
 
       - name: Deploy via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
-        with:
-          server: ${{ vars.SFTP_HOST }}
-          port: ${{ vars.SFTP_PORT }}
-          username: ${{ vars.SFTP_USERNAME }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          local_path: ./dist/*
-          remote_path: /
-          sftp_only: true
-          delete_remote_files: false
-          args: -o StrictHostKeyChecking=no
+        env:
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_HOST: ${{ vars.SFTP_HOST }}
+          SFTP_PORT: ${{ vars.SFTP_PORT }}
+          SFTP_USER: ${{ vars.SFTP_USERNAME }}
+        run: |
+          sudo apt-get install -y sshpass > /dev/null 2>&1
+          sshpass -p "$SFTP_PASSWORD" sftp -P "$SFTP_PORT" -o StrictHostKeyChecking=no "$SFTP_USER@$SFTP_HOST" <<'EOF'
+          put dist/index.js /index.js
+          put dist/yt-dlp /yt-dlp
+          put -r dist/node_modules /node_modules
+          EOF
