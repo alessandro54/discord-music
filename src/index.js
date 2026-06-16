@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createServer } from 'http';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import { dirname, sep } from 'path';
+import { fileURLToPath } from 'url';
 import ffmpegPath from 'ffmpeg-static';
 import { initPlayDl } from './music/initPlayDl.js';
 import { initDb } from './db.js';
@@ -30,7 +31,8 @@ import ready from './events/ready.js';
 process.on('unhandledRejection', err => log.error(`unhandledRejection: ${err}`));
 process.on('uncaughtException',  err => log.error(`uncaughtException: ${err}`));
 
-process.env.PATH = `${dirname(ffmpegPath)}${sep}${process.env.PATH}`;
+const __dir = dirname(fileURLToPath(import.meta.url));
+process.env.PATH = `${__dir}${sep}${dirname(ffmpegPath)}${sep}${process.env.PATH}`;
 
 await initPlayDl();
 await initDb();
