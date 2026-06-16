@@ -32,10 +32,18 @@ jobs:
 
       - run: bun run build && echo "${{ github.sha }}" > dist/REVISION.txt
 
+      - name: Cache yt-dlp
+        uses: actions/cache@v4
+        with:
+          path: dist/yt-dlp
+          key: yt-dlp-${{ runner.os }}-${{ hashFiles('.github/workflows/deploy.yml') }}
+
       - name: Download yt-dlp
         run: |
-          curl -L --fail https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o dist/yt-dlp
-          chmod +x dist/yt-dlp
+          if [ ! -f dist/yt-dlp ]; then
+            curl -L --fail https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o dist/yt-dlp
+            chmod +x dist/yt-dlp
+          fi
 
       - name: Copy native modules
         run: |
