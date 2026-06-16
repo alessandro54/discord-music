@@ -1,4 +1,4 @@
-# oerni-bot
+# music-bot
 
 > **Lightweight, high-performance Discord music bot. Self-hosted. Zero compromise.**
 
@@ -7,13 +7,13 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![CPU](https://img.shields.io/badge/CPU-~5%25_on_playback-brightgreen)
 
-Most Discord music bots transcode everything through ffmpeg at 256k — even when the audio is already Opus. oerni streams WebM/Opus directly from YouTube. **ffmpeg never runs for normal playback.**
+Most Discord music bots transcode everything through ffmpeg at 256k — even when the audio is already Opus. music-bot streams WebM/Opus directly from YouTube. **ffmpeg never runs for normal playback.**
 
 The result: ~5% CPU instead of 50%. No quality loss. No added latency.
 
 ---
 
-## Why oerni?
+## Why music-bot?
 
 - **WebmOpus passthrough** — zero transcoding, lowest CPU of any self-hosted bot
 - **yt-dlp backend** — battle-tested, updated daily, handles everything YouTube throws at it
