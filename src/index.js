@@ -1,10 +1,14 @@
 import 'dotenv/config';
+import { createServer } from 'http';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import { readdirSync } from 'fs';
 import { resolve, dirname, sep } from 'path';
 import { fileURLToPath } from 'url';
 import { initPlayDl } from './music/initPlayDl.js';
 import ffmpegPath from 'ffmpeg-static';
+
+const port = process.env.SERVER_PORT || process.env.PORT || 3000;
+createServer((_, res) => res.end('OK')).listen(port);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
