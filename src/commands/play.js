@@ -55,50 +55,32 @@ async function resolveSongs(query, requestedBy, requestedById) {
 export default {
     async autocomplete(interaction) {
         const query = interaction.options.getFocused();
+        const respond = (items = []) => interaction.respond(items).catch(() => {});
+
         if (query.length < 2) {
             const recent = await getHistory(interaction.guildId, LIMITS.AUTOCOMPLETE_RESULTS);
-            return interaction.respond(
-                recent.map((s) => ({ name: s.title.slice(0, 100), value: s.url })),
-            );
+            return respond(recent.map((s) => ({ name: s.title.slice(0, 100), value: s.url })));
         }
+
+        const deadline = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 2500));
 
         try {
             if (isSpotifyUrl(query)) {
-                const meta = await getTrackMeta(query);
-                if (meta) {
-                    return interaction.respond([
-                        {
-                            name: `${meta.title} (${meta.duration})`.slice(
-                                0,
-                                100,
-                            ),
-                            value: query,
-                        },
-                    ]);
-                }
-                return interaction.respond([
-                    {
-                        name: "Spotify playlist/album — press Enter to queue",
-                        value: query,
-                    },
-                ]);
+                const meta = await Promise.race([getTrackMeta(query), deadline]);
+                if (meta) return respond([{ name: `${meta.title} (${meta.duration})`.slice(0, 100), value: query }]);
+                return respond([{ name: "Spotify playlist/album — press Enter to queue", value: query }]);
             }
 
-            if (YOUTUBE_RE.test(query)) return interaction.respond([]);
+            if (YOUTUBE_RE.test(query)) return respond([]);
 
-            const results = await YouTube.search(query, {
-                limit: LIMITS.AUTOCOMPLETE_RESULTS,
-                type: "video",
-            });
-            await interaction.respond(
-                results.map((v) => ({
-                    name: v.title.slice(0, 100),
-                    value: v.url,
-                })),
-            );
+            const results = await Promise.race([
+                YouTube.search(query, { limit: LIMITS.AUTOCOMPLETE_RESULTS, type: "video" }),
+                deadline,
+            ]);
+            return respond(results.map((v) => ({ name: v.title.slice(0, 100), value: v.url })));
         } catch (err) {
-            log.error(`[autocomplete] ${err.message}`);
-            await interaction.respond([]);
+            if (err.message !== "timeout") log.error(`[autocomplete] ${err.message}`);
+            return respond([]);
         }
     },
     data: new SlashCommandBuilder()
