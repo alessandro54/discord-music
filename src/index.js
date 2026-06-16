@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import { createServer } from 'http';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
-import { dirname, sep } from 'path';
+import { dirname, join, sep } from 'path';
 import { fileURLToPath } from 'url';
+import { chmodSync, existsSync } from 'fs';
 import ffmpegPath from 'ffmpeg-static';
 import { initPlayDl } from './music/initPlayDl.js';
 import { initDb } from './db.js';
@@ -32,6 +33,8 @@ process.on('unhandledRejection', err => log.error(`unhandledRejection: ${err}`))
 process.on('uncaughtException',  err => log.error(`uncaughtException: ${err}`));
 
 const __dir = dirname(fileURLToPath(import.meta.url));
+const ytdlpBin = join(__dir, 'yt-dlp');
+if (existsSync(ytdlpBin)) try { chmodSync(ytdlpBin, 0o755); } catch {}
 process.env.PATH = `${__dir}${sep}${dirname(ffmpegPath)}${sep}${process.env.PATH}`;
 
 await initPlayDl();
