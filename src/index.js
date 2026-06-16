@@ -8,6 +8,7 @@ import ffmpegPath from 'ffmpeg-static';
 import { initPlayDl } from './music/initPlayDl.js';
 import { initDb } from './db.js';
 import { log } from './logger.js';
+import { COMMIT, COMMIT_URL } from './buildInfo.js';
 
 import coinflip from './commands/coinflip.js';
 import help from './commands/help.js';
@@ -31,6 +32,8 @@ import ready from './events/ready.js';
 
 process.on('unhandledRejection', err => log.error(`unhandledRejection: ${err}`));
 process.on('uncaughtException',  err => log.error(`uncaughtException: ${err}`));
+
+log.info(`revision: ${COMMIT_URL ?? COMMIT}`);
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ytdlpBin = join(__dir, 'yt-dlp');

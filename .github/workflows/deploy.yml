@@ -20,6 +20,11 @@ jobs:
 
       - run: bun install
 
+      - name: Write build info
+        run: |
+          echo "export const COMMIT = '${{ github.sha }}';" > src/buildInfo.js
+          echo "export const COMMIT_URL = 'https://github.com/${{ github.repository }}/commit/${{ github.sha }}';" >> src/buildInfo.js
+
       - run: bun run build
 
       - name: Download yt-dlp
