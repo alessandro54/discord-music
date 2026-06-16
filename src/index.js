@@ -16,6 +16,7 @@ import queue from "./commands/queue.js";
 import resume from "./commands/resume.js";
 import seek from "./commands/seek.js";
 import serverinfo from "./commands/serverinfo.js";
+import setup from "./commands/setup.js";
 import skip from "./commands/skip.js";
 import stop from "./commands/stop.js";
 import timeout from "./commands/timeout.js";
@@ -74,6 +75,7 @@ for (const cmd of [
     resume,
     seek,
     serverinfo,
+    setup,
     skip,
     stop,
     timeout,
