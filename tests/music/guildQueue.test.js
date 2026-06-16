@@ -23,6 +23,7 @@ mock.module('../../src/music/stream.js', () => ({
 mock.module('../../src/lib/db.js', () => ({
     saveSong: mock(() => {}),
     initDb: mock(() => Promise.resolve()),
+    getHistory: mock(() => Promise.resolve([])),
 }));
 
 mock.module('../../src/lib/logger.js', () => ({

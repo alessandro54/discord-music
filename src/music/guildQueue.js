@@ -79,6 +79,10 @@ export class GuildQueue {
         return this.songs[0] ?? null;
     }
 
+    get paused() {
+        return this.player.state.status === AudioPlayerStatus.Paused;
+    }
+
     _killStream() {
         for (const proc of this.resource?._procs ?? []) {
             try {
