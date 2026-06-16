@@ -8,11 +8,25 @@ await build({
     target: 'node22',
     outfile: 'dist/index.js',
     format: 'esm',
-    external: ['@discordjs/opus', 'ffmpeg-static'],
+    external: ['@discordjs/opus', 'ffmpeg-static', '@snazzah/davey', '@snazzah/davey-linux-x64-musl', '@snazzah/davey-linux-x64-gnu'],
 });
 
+const natives = [
+    '@discordjs/opus',
+    'ffmpeg-static',
+    '@snazzah/davey',
+    '@snazzah/davey-linux-x64-musl',
+    '@snazzah/davey-linux-x64-gnu',
+];
+
 mkdirSync('dist/node_modules', { recursive: true });
-cpSync('node_modules/@discordjs/opus', 'dist/node_modules/@discordjs/opus', { recursive: true });
-cpSync('node_modules/ffmpeg-static', 'dist/node_modules/ffmpeg-static', { recursive: true });
+for (const pkg of natives) {
+    const src = `node_modules/${pkg}`;
+    try {
+        cpSync(src, `dist/node_modules/${pkg}`, { recursive: true });
+    } catch {
+        // package not installed on this platform, skip
+    }
+}
 
 console.log('Build complete.');
