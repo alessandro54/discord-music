@@ -11,7 +11,7 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
-import { getYoutubeInfo } from "../music/stream.js";
+import { getYoutubeInfo, searchYoutube } from "../music/stream.js";
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 const YOUTUBE_LIST_RE = /[?&]list=/;
 
@@ -74,7 +74,7 @@ export default {
             if (YOUTUBE_RE.test(query)) return respond([]);
 
             const results = await Promise.race([
-                YouTube.search(query, { limit: LIMITS.AUTOCOMPLETE_RESULTS, type: "video" }),
+                searchYoutube(query, LIMITS.AUTOCOMPLETE_RESULTS),
                 deadline,
             ]);
             return respond(results.map((v) => ({ name: v.title.slice(0, 100), value: v.url })));
