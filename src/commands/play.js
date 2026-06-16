@@ -11,7 +11,7 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
-import { getYoutubeInfo, searchYoutube } from "../music/stream.js";
+import { getYoutubeInfo, getSongMeta, searchYoutube } from "../music/stream.js";
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 const YOUTUBE_LIST_RE = /[?&]list=/;
 
@@ -53,6 +53,8 @@ async function resolveSongs(query, requestedBy, requestedById) {
     }
 
     if (YOUTUBE_RE.test(query)) {
+        const cached = getSongMeta(query);
+        if (cached) return { songs: [songFrom(cached, requestedBy, requestedById)], playlistName: null };
         const v = await YouTube.getVideo(query) ?? await getYoutubeInfo(query);
         return { songs: [songFrom(v, requestedBy, requestedById)], playlistName: null };
     }
@@ -161,9 +163,13 @@ export default {
         }
 
         if (songs.length === 1) {
+            const song = songs[0];
+            const dupePos = queue.songs.findIndex((s) => s.url === song.url);
+            if (dupePos >= 0) {
+                return interaction.editReply(`**${song.title}** is already in the queue at position #${dupePos + 1}.`);
+            }
             const positionBefore = queue.songs.length;
             const isFirst = positionBefore === 0;
-            const song = songs[0];
             log.music(
                 `Enqueued ${log.bold(song.title)} ${log.gray(`by ${interaction.user.tag}`)}`,
             );

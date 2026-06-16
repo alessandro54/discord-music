@@ -40,6 +40,19 @@ export async function searchYoutube(query, limit = 5) {
     }));
 }
 
+export function getSongMeta(url) {
+    const videoId = extractVideoId(url);
+    if (!videoId) return null;
+    const hit = infoCache.get(videoId);
+    if (!hit || hit.expiresAt <= Date.now()) return null;
+    const s = hit.info.basic_info?.duration ?? 0;
+    const m = Math.floor(s / 60), h = Math.floor(m / 60);
+    const duration = h > 0
+        ? `${h}:${String(m % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
+        : `${m}:${String(s % 60).padStart(2, "0")}`;
+    return { title: hit.info.basic_info?.title ?? "Unknown", url, duration };
+}
+
 export function prefetchSong(url) {
     const videoId = extractVideoId(url);
     if (videoId) getCachedInfo(videoId).catch(() => {});

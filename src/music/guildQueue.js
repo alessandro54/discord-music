@@ -12,6 +12,19 @@ import { createStream, prefetchSong } from "./stream.js";
 
 export const queues = new Map();
 
+let _client = null;
+export function setClient(client) { _client = client; }
+
+function updateActivity() {
+    if (!_client) return;
+    const active = [...queues.values()].find((q) => q.playing && q.current);
+    if (active) {
+        _client.user?.setActivity(active.current.title, { type: 2 }); // 2 = Listening
+    } else {
+        _client.user?.setActivity(null);
+    }
+}
+
 export class GuildQueue {
     constructor(guildId, onDestroy) {
         this.guildId = guildId;
@@ -32,6 +45,7 @@ export class GuildQueue {
                 this._playNext();
             } else {
                 this.playing = false;
+                updateActivity();
                 log.music(`Queue empty in guild ${this.guildId}`);
                 this._idleTimeout = setTimeout(
                     () => this.destroy(),
@@ -135,6 +149,7 @@ export class GuildQueue {
             this.resource = resource;
             this.player.play(resource);
             this.playing = true;
+            updateActivity();
             const next = this.songs[1];
             if (next?.url) prefetchSong(next.url);
             log.music(
