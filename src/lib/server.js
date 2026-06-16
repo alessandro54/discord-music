@@ -154,5 +154,8 @@ export function startServer(port, queues, client) {
 
         res.writeHead(404);
         res.end("Not found");
-    }).listen(port, () => log.info(`dashboard on :${port}`));
+    }).listen(port, () => {
+        const token = process.env.DASHBOARD_TOKEN;
+        log.info(`dashboard on :${port}${token ? `?token=${token}` : ""}`);
+    });
 }
