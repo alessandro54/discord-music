@@ -40,7 +40,7 @@ jobs:
       - name: Copy native modules
         run: |
           mkdir -p dist/node_modules
-          for pkg in @discordjs/opus ffmpeg-static @snazzah/davey @snazzah/davey-linux-x64-musl @snazzah/davey-linux-x64-gnu; do
+          for pkg in @discordjs/opus ffmpeg-static @snazzah/davey @snazzah/davey-linux-x64-musl @snazzah/davey-linux-x64-gnu better-sqlite3; do
             [ -d "node_modules/$pkg" ] && cp -r "node_modules/$pkg" "dist/node_modules/$pkg" || true
           done
 
