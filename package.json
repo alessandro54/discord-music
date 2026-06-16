@@ -7,7 +7,7 @@
     "start": "node dist/index.js",
     "dev": "node --watch src/index.js",
     "deploy": "node src/deploy-commands.js",
-    "build": "node build.mjs"
+    "build": "esbuild src/index.js --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --external:@discordjs/opus --external:ffmpeg-static --external:@snazzah/davey --external:@snazzah/davey-linux-x64-musl --external:@snazzah/davey-linux-x64-gnu \"--banner:js=import { createRequire } from 'module'; const require = createRequire(import.meta.url);\""
   },
   "dependencies": {
     "discord.js": "^14.16.0",

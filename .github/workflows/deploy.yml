@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'src/**/*.js'
-      - 'build.mjs'
       - 'package.json'
       - 'bun.lock'
 
@@ -22,6 +21,13 @@ jobs:
       - run: bun install
 
       - run: bun run build
+
+      - name: Copy native modules
+        run: |
+          mkdir -p dist/node_modules
+          for pkg in @discordjs/opus ffmpeg-static @snazzah/davey @snazzah/davey-linux-x64-musl @snazzah/davey-linux-x64-gnu; do
+            [ -d "node_modules/$pkg" ] && cp -r "node_modules/$pkg" "dist/node_modules/$pkg" || true
+          done
 
       - name: Deploy via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
