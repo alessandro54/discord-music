@@ -1,5 +1,5 @@
 import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
-import { setGuildConfig } from "../lib/db.js";
+import { getConfig, setConfig } from "../lib/config.js";
 
 export default {
     data: new SlashCommandBuilder()
@@ -29,8 +29,7 @@ export default {
         const sub = interaction.options.getSubcommand();
 
         if (sub === "show") {
-            const { getGuildConfig } = await import("../lib/db.js");
-            const config = await getGuildConfig(interaction.guildId);
+            const config = getConfig(interaction.guildId);
             return interaction.reply({
                 content: [
                     `**Bot config for this server:**`,
@@ -47,7 +46,7 @@ export default {
                 ? { welcome_channel_id: channel.id }
                 : { rules_channel_id: channel.id };
 
-        await setGuildConfig(interaction.guildId, patch);
+        setConfig(interaction.guildId, patch);
         return interaction.reply({
             content: `✅ ${sub === "welcome" ? "Welcome" : "Rules"} channel set to <#${channel.id}>`,
             ephemeral: true,
