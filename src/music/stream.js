@@ -1,10 +1,11 @@
 import { spawn } from "node:child_process";
+import { join, dirname } from "node:path";
 import { Readable } from "node:stream";
 import { Innertube } from "youtubei.js";
 import { createAudioResource, StreamType } from "@discordjs/voice";
 import { log } from "../lib/logger.js";
 
-const YTDLP = process.env.YTDLP_PATH || "yt-dlp";
+const YTDLP = process.env.YTDLP_PATH || join(dirname(process.argv[1]), "yt-dlp");
 const YTDLP_FAST = ["--no-check-formats", "--extractor-args", "youtube:skip=dash,hls"];
 const INFO_TTL = 5 * 60 * 60 * 1000; // 5h — YouTube stream URLs expire in ~6h
 

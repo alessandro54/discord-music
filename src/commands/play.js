@@ -15,11 +15,21 @@ import { getYoutubeInfo, searchYoutube } from "../music/stream.js";
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 const YOUTUBE_LIST_RE = /[?&]list=/;
 
+function fmtSeconds(s) {
+    s = Math.floor(s);
+    const m = Math.floor(s / 60), h = Math.floor(m / 60);
+    return h > 0
+        ? `${h}:${String(m % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
+        : `${m}:${String(s % 60).padStart(2, "0")}`;
+}
+
 function songFrom(v, requestedBy, requestedById) {
+    const duration = v.duration?.timestamp
+        ?? (v.duration?.seconds ? fmtSeconds(v.duration.seconds) : "?:??");
     return {
         title: v.title,
         url: v.url,
-        duration: v.duration?.timestamp ?? "?:??",
+        duration,
         requestedBy,
         requestedById,
         spotifyTrack: null,
