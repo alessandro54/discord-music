@@ -36,9 +36,14 @@ process.on('uncaughtException',  err => log.error(`uncaughtException: ${err}`));
 log.info(`revision: ${COMMIT_URL ?? COMMIT}`);
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-const ytdlpBin = join(__dir, 'yt-dlp');
-if (existsSync(ytdlpBin)) try { chmodSync(ytdlpBin, 0o755); } catch {}
-process.env.PATH = `${__dir}${sep}${dirname(ffmpegPath)}${sep}${process.env.PATH}`;
+const cwd = process.cwd();
+log.info(`__dir: ${__dir} | cwd: ${cwd}`);
+for (const dir of [__dir, cwd]) {
+    const bin = join(dir, 'yt-dlp');
+    log.info(`checking yt-dlp at ${bin}: ${existsSync(bin)}`);
+    if (existsSync(bin)) try { chmodSync(bin, 0o755); } catch {}
+}
+process.env.PATH = `${__dir}${sep}${cwd}${sep}${dirname(ffmpegPath)}${sep}${process.env.PATH}`;
 
 await initPlayDl();
 await initDb();
