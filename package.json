@@ -10,7 +10,7 @@
     "test": "bun test",
     "lint": "biome check src/",
     "format": "biome format --write src/",
-    "build": "bun build src/index.js --target=node --format=esm --outfile=dist/index.js --external dotenv --external ffmpeg-static --external @snazzah/davey --external @snazzah/davey-linux-x64-musl --external @snazzah/davey-linux-x64-gnu --external better-sqlite3 --external sodium-native --external opusscript"
+    "build": "bun build src/index.js --target=node --format=esm --outfile=dist/index.js --external '*'"
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.0",
