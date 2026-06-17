@@ -11,6 +11,7 @@ RUN npm install
 COPY src/ ./src/
 RUN npx --yes esbuild src/index.js \
     --bundle --platform=node --format=esm --outfile=dist/index.js \
+    --external:dotenv \
     --external:ffmpeg-static \
     --external:@snazzah/davey \
     --external:@snazzah/davey-linux-x64-musl \
