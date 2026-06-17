@@ -11,7 +11,7 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
-import { getYoutubeInfo, warmUrlCache } from "../music/stream.js";
+import { fetchVideoInfo, warmUrlCache } from "../music/stream.js";
 
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 const YOUTUBE_LIST_RE = /[?&]list=/;
@@ -54,8 +54,8 @@ async function resolveSongs(query, requestedBy, requestedById) {
     }
 
     if (YOUTUBE_RE.test(query)) {
-        const v = await YouTube.getVideo(query) ?? await getYoutubeInfo(query);
-        return { songs: [songFrom(v, requestedBy, requestedById)], playlistName: null };
+        const info = await fetchVideoInfo(query); // single spawn: title + duration + caches stream URL
+        return { songs: [{ title: info.title, url: info.url, duration: info.duration, requestedBy, requestedById, spotifyTrack: null }], playlistName: null };
     }
 
     const results = await YouTube.search(query, { limit: 1, type: "video" });
@@ -63,7 +63,7 @@ async function resolveSongs(query, requestedBy, requestedById) {
     const hit = results[0];
     const song = songFrom(hit, requestedBy, requestedById);
     if (song.duration === "?:??" && hit.url) {
-        getYoutubeInfo(hit.url).then((info) => { if (info?.duration) song.duration = info.duration; }).catch(() => {});
+        fetchVideoInfo(hit.url).then((info) => { if (info?.duration) song.duration = info.duration; }).catch(() => {});
     }
     return { songs: [song], playlistName: null };
 }
@@ -127,8 +127,6 @@ export default {
         }
 
         const query = interaction.options.getString("query");
-        // warm URL cache in parallel with metadata fetch (only for direct YouTube URLs)
-        if (YOUTUBE_RE.test(query) && !YOUTUBE_LIST_RE.test(query)) warmUrlCache(query);
         await interaction.reply({ content: `🔍 Searching for **${query}**…` });
 
         let resolved;
