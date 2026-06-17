@@ -11,7 +11,8 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
-import { getYoutubeInfo, getSongMeta, searchYoutube } from "../music/stream.js";
+import { fetchVideoInfo, warmUrlCache } from "../music/stream.js";
+
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 const YOUTUBE_LIST_RE = /[?&]list=/;
 
@@ -53,10 +54,8 @@ async function resolveSongs(query, requestedBy, requestedById) {
     }
 
     if (YOUTUBE_RE.test(query)) {
-        const cached = getSongMeta(query);
-        if (cached) return { songs: [songFrom(cached, requestedBy, requestedById)], playlistName: null };
-        const v = await YouTube.getVideo(query) ?? await getYoutubeInfo(query);
-        return { songs: [songFrom(v, requestedBy, requestedById)], playlistName: null };
+        const info = await fetchVideoInfo(query); // single spawn: title + duration + caches stream URL
+        return { songs: [{ title: info.title, url: info.url, duration: info.duration, requestedBy, requestedById, spotifyTrack: null }], playlistName: null };
     }
 
     const results = await YouTube.search(query, { limit: 1, type: "video" });
@@ -64,7 +63,7 @@ async function resolveSongs(query, requestedBy, requestedById) {
     const hit = results[0];
     const song = songFrom(hit, requestedBy, requestedById);
     if (song.duration === "?:??" && hit.url) {
-        getYoutubeInfo(hit.url).then((info) => { if (info?.duration) song.duration = info.duration; }).catch(() => {});
+        fetchVideoInfo(hit.url).then((info) => { if (info?.duration) song.duration = info.duration; }).catch(() => {});
     }
     return { songs: [song], playlistName: null };
 }
@@ -90,11 +89,11 @@ export default {
 
             if (YOUTUBE_RE.test(query)) return respond([]);
 
-            const ytsr = YouTube.search(query, { limit: LIMITS.AUTOCOMPLETE_RESULTS, type: "video" })
-                .then((r) => r.map((v) => ({ title: v.title, url: v.url })));
-            const inner = searchYoutube(query, LIMITS.AUTOCOMPLETE_RESULTS);
-            const results = await Promise.race([Promise.any([ytsr, inner]), deadline]);
-            return respond(results.map((v) => ({ name: v.title.slice(0, 100), value: v.url })));
+            const results = await Promise.race([
+                YouTube.search(query, { limit: LIMITS.AUTOCOMPLETE_RESULTS, type: "video" }),
+                deadline,
+            ]);
+            return respond(results.map((v) => ({ name: (v.title ?? "").slice(0, 100), value: v.url })));
         } catch (err) {
             if (err.message !== "timeout") log.error(`[autocomplete] ${err.message}`);
             return respond([]);
@@ -139,9 +138,7 @@ export default {
             );
         } catch (err) {
             log.error(`[play] resolveSongs: ${err.message}`);
-            return interaction.editReply(
-                "Could not find that song or playlist.",
-            );
+            return interaction.editReply("Could not find that song or playlist.");
         }
 
         const { songs, playlistName } = resolved;
@@ -179,16 +176,8 @@ export default {
                 .setDescription(`**${song.title}**`)
                 .addFields(
                     { name: "Duration", value: song.duration, inline: true },
-                    {
-                        name: "Requested by",
-                        value: song.requestedBy,
-                        inline: true,
-                    },
-                    {
-                        name: "Position",
-                        value: isFirst ? "Now" : `#${positionBefore + 1}`,
-                        inline: true,
-                    },
+                    { name: "Requested by", value: song.requestedBy, inline: true },
+                    { name: "Position", value: isFirst ? "Now" : `#${positionBefore + 1}`, inline: true },
                 );
             return interaction.editReply({ embeds: [e] });
         }
@@ -196,14 +185,8 @@ export default {
         queue.addMany(songs);
         const e = embed(COLORS.SPOTIFY)
             .setTitle("📋 Playlist Queued")
-            .setDescription(
-                `**${playlistName ?? "Playlist"}** — ${songs.length} songs added`,
-            )
-            .addFields({
-                name: "Requested by",
-                value: interaction.user.tag,
-                inline: true,
-            });
+            .setDescription(`**${playlistName ?? "Playlist"}** — ${songs.length} songs added`)
+            .addFields({ name: "Requested by", value: interaction.user.tag, inline: true });
         return interaction.editReply({ embeds: [e] });
     },
 };
