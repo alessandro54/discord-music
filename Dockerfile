@@ -1,12 +1,10 @@
 # syntax=docker/dockerfile:1
-FROM node:20-slim AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 
 # Build stage: compile native modules + bundle with bun
 FROM base AS build
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential pkg-config python3-is-python curl && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache build-base python3 curl
 
 # Install bun for bundling
 RUN curl -fsSL https://bun.sh/install | bash
