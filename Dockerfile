@@ -1,17 +1,13 @@
 # syntax=docker/dockerfile:1
-FROM node:22-alpine AS base
+
+# Build stage: uses bun image (has bash + bun)
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
 
-# Build stage: compile native modules + bundle with bun
-FROM base AS build
-RUN apk add --no-cache build-base python3 curl
-
-# Install bun for bundling
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
+RUN apk add --no-cache build-base python3 curl nodejs npm
 
 COPY package.json bun.lock ./
-# npm for native module compilation (real node-gyp), bun for speed on pure-JS deps
+# npm for native module compilation (real node-gyp)
 RUN npm install
 
 COPY src/ ./src/
@@ -24,12 +20,11 @@ RUN bun build src/index.js --target=node --format=esm --outfile=dist/index.js \
     --external better-sqlite3 \
     --external sodium-native
 
-# Download yt-dlp binary
 RUN curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
     -o dist/yt-dlp && chmod +x dist/yt-dlp
 
-# Runtime stage: lean image
-FROM base AS runtime
+# Runtime stage: lean node alpine
+FROM node:22-alpine AS runtime
 WORKDIR /app
 
 COPY --from=build /app/dist/ ./dist/
