@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Personal Music Discord Bot
 
-Personal Discord bot hosted on Mamba Host.
+Personal Discord bot hosted on Fly.io.
 
 ## Stack
 - discord.js v14
-- Node.js v20 (Mamba runtime)
-- Bun (local dev + CI)
+- Node.js v20
+- Bun (local dev)
 - esbuild (bundler)
+- Docker (deployment)
 
 ## Bot Info
 - App ID: 1513765585794895872
@@ -48,13 +49,12 @@ After adding/changing commands, run `bun run deploy` to register with Discord.
 
 esbuild bundles `src/index.js` into `dist/index.js`. Native modules (`@discordjs/opus`, `ffmpeg-static`, `@snazzah/davey`) are excluded from bundle and copied to `dist/node_modules/`.
 
-CI (GitHub Actions) runs on push to `main` when `src/**/*.js`, `package.json`, or `bun.lock` changes:
-1. `bun install`
-2. `bun run build`
-3. Copy native modules to `dist/node_modules/`
-4. SFTP upload `dist/` → Mamba Host `/`
+CI (GitHub Actions) runs on push to `main` when `src/**/*.js`, `package.json`, `bun.lock`, `Dockerfile`, or `fly.toml` changes:
+1. Write build info (`src/lib/buildInfo.js`)
+2. `flyctl deploy --remote-only` — builds Docker image on Fly, deploys to `gru` region
 
-Mamba Host env vars: `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`. `STARTUP_FILE` = `index.js`.
+Fly.io secrets: `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`. GitHub secret: `FLY_API_TOKEN`.
+SQLite persisted at `/data/bot.db` on a 1GB Fly volume (`bot_data`).
 
 ## Server Structure
 - 📢 COMMUNITY: #welcome (ID: 902775878075940905), #general, #announcements, #introductions, #memes, #media

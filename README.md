@@ -76,12 +76,10 @@ bun dev          # local dev with auto-restart
 
 ## Deployment
 
-Push to `main` — GitHub Actions builds and deploys automatically via SFTP.
+Push to `main` — GitHub Actions builds Docker image and deploys to Fly.io.
 
-Tested on [Mamba Host](https://mamba.host) (Node.js v20). Works on any Node.js v20+ host.
-
-**Required secrets/vars in GitHub:** `SFTP_PASSWORD`, `SFTP_HOST`, `SFTP_PORT`, `SFTP_USERNAME`  
-**Required env vars on host:** `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`
+**Required GitHub secret:** `FLY_API_TOKEN`  
+**Required Fly.io secrets:** `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`
 
 ---
 
@@ -140,7 +138,7 @@ If `DASHBOARD_TOKEN` is set, append `?token=<your_token>` to the URL. The token 
 | Source | yt-dlp (binary, auto-downloaded in CI) |
 | Database | better-sqlite3 (default) · mysql2 (optional) |
 | Build | Bun + bun build |
-| CI/CD | GitHub Actions → SFTP |
+| CI/CD | GitHub Actions → Fly.io (Docker) |
 
 ---
 

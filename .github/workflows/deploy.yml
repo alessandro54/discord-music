@@ -1,4 +1,4 @@
-name: Deploy to Mamba Host
+name: Deploy to Fly.io
 
 on:
   workflow_dispatch:
@@ -8,6 +8,8 @@ on:
       - 'src/**/*.js'
       - 'package.json'
       - 'bun.lock'
+      - 'Dockerfile'
+      - 'fly.toml'
       - '.github/workflows/deploy.yml'
 
 jobs:
@@ -21,51 +23,18 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-          cache: true
-
-      - run: bun install
 
       - name: Write build info
         run: |
           echo "export const COMMIT = '${{ github.sha }}';" > src/lib/buildInfo.js
           echo "export const COMMIT_URL = 'https://github.com/${{ github.repository }}/commit/${{ github.sha }}';" >> src/lib/buildInfo.js
 
-      - run: bun run build && echo "${{ github.sha }}" > dist/REVISION.txt
+      - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Cache yt-dlp
-        uses: actions/cache@v4
-        with:
-          path: dist/yt-dlp
-          key: yt-dlp-${{ runner.os }}-${{ hashFiles('.github/workflows/deploy.yml') }}
-
-      - name: Download yt-dlp
-        run: |
-          if [ ! -f dist/yt-dlp ]; then
-            curl -L --fail https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o dist/yt-dlp
-            chmod +x dist/yt-dlp
-          fi
-
-      - name: Copy native modules
-        run: |
-          mkdir -p dist/node_modules
-          for pkg in @discordjs/opus ffmpeg-static @snazzah/davey @snazzah/davey-linux-x64-musl @snazzah/davey-linux-x64-gnu better-sqlite3 sodium-native; do
-            [ -d "node_modules/$pkg" ] && cp -r "node_modules/$pkg" "dist/node_modules/$pkg" || true
-          done
-
-      - name: Deploy via SFTP
+      - name: Deploy
         env:
-          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
-          SFTP_HOST: ${{ vars.SFTP_HOST }}
-          SFTP_PORT: ${{ vars.SFTP_PORT }}
-          SFTP_USER: ${{ vars.SFTP_USERNAME }}
-        run: |
-          sudo apt-get install -y sshpass > /dev/null 2>&1
-          sshpass -p "$SFTP_PASSWORD" sftp -P "$SFTP_PORT" -o StrictHostKeyChecking=no "$SFTP_USER@$SFTP_HOST" <<'EOF'
-          put dist/index.js /index.js
-          put dist/yt-dlp /yt-dlp
-          put dist/REVISION.txt /REVISION.txt
-          put -r dist/node_modules /node_modules
-          EOF
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only
 
       - name: Clean up old deployments
         env:
