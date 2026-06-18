@@ -5,7 +5,7 @@ import { createAudioResource, StreamType } from "@discordjs/voice";
 import { log } from "../lib/logger.js";
 
 const YTDLP = process.env.YTDLP_PATH || join(dirname(process.argv[1]), "yt-dlp");
-const YTDLP_FAST = ["--no-check-formats", "--extractor-args", "youtube:skip=dash,hls"];
+const YTDLP_FAST = ["--no-check-formats"];
 
 const COOKIES_PATH = "/tmp/yt-cookies.txt";
 let COOKIES_ARGS = [];
