@@ -93,7 +93,7 @@ export default {
 
             const t0 = Date.now();
             const results = await Promise.race([
-                YouTube.search(query, { limit: LIMITS.AUTOCOMPLETE_RESULTS, type: "video" }),
+                YouTube.search(query, { limit: 3, type: "video" }),
                 deadline,
             ]);
             log.info(`[autocomplete] "${query}" → ${results.length} results in ${Date.now() - t0}ms`);
@@ -102,7 +102,8 @@ export default {
             return;
         } catch (err) {
             log.error(`[autocomplete] "${query}" failed: ${err.message}`);
-            return respond([]);
+            const recent = await getHistory(interaction.guildId, LIMITS.AUTOCOMPLETE_RESULTS);
+            return respond(recent.map((s) => ({ name: `↩ ${s.title}`.slice(0, 100), value: s.url })));
         }
     },
     data: new SlashCommandBuilder()
