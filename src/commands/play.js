@@ -1,6 +1,5 @@
 import { joinVoiceChannel } from "@discordjs/voice";
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
-import { YouTube } from "youtube-sr";
 import { COLORS, LIMITS } from "../lib/constants.js";
 import { embed } from "../lib/embeds.js";
 import { log } from "../lib/logger.js";
@@ -11,30 +10,17 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
-import { fetchVideoInfo, warmUrlCache } from "../music/stream.js";
+import { fetchVideoInfo, searchVideo, fetchPlaylistItems } from "../music/stream.js";
 
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 const YOUTUBE_LIST_RE = /[?&]list=/;
 
-function fmtSeconds(s) {
-    s = Math.floor(s);
-    const m = Math.floor(s / 60), h = Math.floor(m / 60);
-    return h > 0
-        ? `${h}:${String(m % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
-        : `${m}:${String(s % 60).padStart(2, "0")}`;
-}
-
-function songFrom(v, requestedBy, requestedById) {
-    const duration = v.duration?.timestamp
-        ?? (v.duration?.seconds ? fmtSeconds(v.duration.seconds) : "?:??");
-    return {
-        title: v.title,
-        url: v.url,
-        duration,
-        requestedBy,
-        requestedById,
-        spotifyTrack: null,
-    };
+async function ytSuggest(query) {
+    const res = await fetch(
+        `https://suggestqueries-clients6.youtube.com/complete/search?client=youtube&ds=yt&q=${encodeURIComponent(query)}`
+    );
+    const data = await res.json();
+    return (data[1] || []).slice(0, 5);
 }
 
 async function resolveSongs(query, requestedBy, requestedById) {
@@ -43,29 +29,18 @@ async function resolveSongs(query, requestedBy, requestedById) {
     }
 
     if (YOUTUBE_RE.test(query) && YOUTUBE_LIST_RE.test(query)) {
-        const playlist = await YouTube.getPlaylist(query);
-        if (!playlist) throw new Error("Playlist not found");
-        await playlist.fetch(LIMITS.PLAYLIST_MAX);
-        const songs = playlist.videos
-            .slice(0, LIMITS.PLAYLIST_MAX)
-            .filter((v) => v.title && v.url)
-            .map((v) => songFrom(v, requestedBy, requestedById));
-        return { songs, playlistName: playlist.title };
+        const items = await fetchPlaylistItems(query, LIMITS.PLAYLIST_MAX);
+        if (!items.length) throw new Error("Playlist not found or empty");
+        return { songs: items.map((v) => ({ ...v, requestedBy, requestedById, spotifyTrack: null })), playlistName: null };
     }
 
     if (YOUTUBE_RE.test(query)) {
-        const info = await fetchVideoInfo(query); // single spawn: title + duration + caches stream URL
+        const info = await fetchVideoInfo(query);
         return { songs: [{ title: info.title, url: info.url, duration: info.duration, requestedBy, requestedById, spotifyTrack: null }], playlistName: null };
     }
 
-    const results = await YouTube.search(query, { limit: 1, type: "video" });
-    if (!results.length) return { songs: [], playlistName: null };
-    const hit = results[0];
-    const song = songFrom(hit, requestedBy, requestedById);
-    if (song.duration === "?:??" && hit.url) {
-        fetchVideoInfo(hit.url).then((info) => { if (info?.duration) song.duration = info.duration; }).catch(() => {});
-    }
-    return { songs: [song], playlistName: null };
+    const info = await searchVideo(query);
+    return { songs: [{ title: info.title, url: info.url, duration: info.duration, requestedBy, requestedById, spotifyTrack: null }], playlistName: null };
 }
 
 export default {
@@ -75,12 +50,10 @@ export default {
 
         if (query.length < 2) {
             const recent = await getHistory(interaction.guildId, LIMITS.AUTOCOMPLETE_RESULTS);
-            respond(recent.map((s) => ({ name: s.title.slice(0, 100), value: s.url })));
-            if (recent[0]) warmUrlCache(recent[0].url);
-            return;
+            return respond(recent.map((s) => ({ name: s.title.slice(0, 100), value: s.url })));
         }
 
-        const deadline = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 2800));
+        const deadline = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 2500));
 
         try {
             if (isSpotifyUrl(query)) {
@@ -91,17 +64,10 @@ export default {
 
             if (YOUTUBE_RE.test(query)) return respond([]);
 
-            const t0 = Date.now();
-            const results = await Promise.race([
-                YouTube.search(query, { limit: 3, type: "video" }),
-                deadline,
-            ]);
-            log.info(`[autocomplete] "${query}" → ${results.length} results in ${Date.now() - t0}ms`);
-            respond(results.map((v) => ({ name: (v.title ?? "").slice(0, 100), value: v.url })));
-            results.slice(0, 2).forEach((v) => warmUrlCache(v.url));
-            return;
+            const suggestions = await Promise.race([ytSuggest(query), deadline]);
+            return respond(suggestions.map((s) => ({ name: s.slice(0, 100), value: s })));
         } catch (err) {
-            log.error(`[autocomplete] "${query}" failed: ${err.message}`);
+            if (err.message !== "timeout") log.error(`[autocomplete] ${err.message}`);
             const recent = await getHistory(interaction.guildId, LIMITS.AUTOCOMPLETE_RESULTS);
             return respond(recent.map((s) => ({ name: `↩ ${s.title}`.slice(0, 100), value: s.url })));
         }

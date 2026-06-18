@@ -4,11 +4,10 @@ import {
     entersState,
     VoiceConnectionStatus,
 } from "@discordjs/voice";
-import { YouTube } from "youtube-sr";
 import { TIMEOUTS } from "../lib/constants.js";
 import { saveSong } from "../lib/db.js";
 import { log } from "../lib/logger.js";
-import { createStream, warmUrlCache } from "./stream.js";
+import { createStream, searchVideo, warmUrlCache } from "./stream.js";
 
 export const queues = new Map();
 
@@ -126,12 +125,8 @@ export class GuildQueue {
         if (song.spotifyTrack) {
             try {
                 const { name, artists } = song.spotifyTrack;
-                const results = await YouTube.search(
-                    `${name} ${artists[0].name}`,
-                    { limit: 1, type: "video" },
-                );
-                if (!results.length) throw new Error("No YouTube result");
-                song = { ...song, url: results[0].url, spotifyTrack: null };
+                const info = await searchVideo(`${name} ${artists[0].name}`);
+                song = { ...song, url: info.url, title: info.title, duration: info.duration, spotifyTrack: null };
                 this.songs[0] = song;
             } catch {
                 log.error(

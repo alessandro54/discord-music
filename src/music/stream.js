@@ -60,6 +60,65 @@ export function warmUrlCache(url) {
     fetchVideoInfo(url).catch(() => {});
 }
 
+// search YouTube and return first result with stream URL cached
+export function searchVideo(query) {
+    return new Promise((resolve, reject) => {
+        const proc = spawn(YTDLP, [
+            "--no-playlist", "--quiet", "--no-warnings", ...YTDLP_FAST,
+            "-f", AUDIO_FMT,
+            "--print", "title",
+            "--print", "duration",
+            "--print", "webpage_url",
+            "--print", "url",
+            `ytsearch1:${query}`,
+        ]);
+        let out = "", err = "";
+        proc.stdout.on("data", (d) => { out += d; });
+        proc.stderr.on("data", (d) => { err += d; });
+        proc.on("close", (code) => {
+            if (code !== 0) return reject(new Error(`yt-dlp search failed (${code}): ${err.trim()}`));
+            const [title, durStr, webpageUrl, streamUrl] = out.trim().split("\n");
+            if (!title || !webpageUrl) return reject(new Error("incomplete yt-dlp output"));
+            const duration = fmtSecs(parseInt(durStr, 10) || 0);
+            const videoId = extractVideoId(webpageUrl);
+            if (videoId && streamUrl) {
+                urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL });
+            }
+            resolve({ title, url: webpageUrl, duration });
+        });
+        proc.on("error", reject);
+    });
+}
+
+// fetch playlist items via yt-dlp flat extraction
+export function fetchPlaylistItems(url, limit) {
+    return new Promise((resolve, reject) => {
+        const proc = spawn(YTDLP, [
+            "--flat-playlist", "--dump-json", "--quiet", "--no-warnings",
+            "--playlist-end", String(limit),
+            url,
+        ]);
+        let out = "", err = "";
+        proc.stdout.on("data", (d) => { out += d; });
+        proc.stderr.on("data", (d) => { err += d; });
+        proc.on("close", (code) => {
+            if (code !== 0 && !out.trim()) return reject(new Error(`yt-dlp playlist failed (${code}): ${err.trim()}`));
+            const items = out.trim().split("\n").filter(Boolean).map((line) => {
+                try {
+                    const v = JSON.parse(line);
+                    return {
+                        title: v.title,
+                        url: v.url || `https://www.youtube.com/watch?v=${v.id}`,
+                        duration: fmtSecs(v.duration || 0),
+                    };
+                } catch { return null; }
+            }).filter(Boolean);
+            resolve(items);
+        });
+        proc.on("error", reject);
+    });
+}
+
 export async function createStream(url, seekSeconds = 0) {
     if (seekSeconds > 0) return _ytdlpStream(url, seekSeconds);
 

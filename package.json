@@ -21,7 +21,6 @@
     "mysql2": "^3.11.0",
     "opusscript": "^0.1.1",
     "sodium-native": "^5.1.0",
-    "youtube-sr": "^4.3.11",
     "youtubei.js": "^17.0.1"
   },
   "devDependencies": {
