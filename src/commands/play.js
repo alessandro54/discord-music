@@ -65,7 +65,11 @@ export default {
             if (YOUTUBE_RE.test(query)) return respond([]);
 
             const suggestions = await Promise.race([ytSuggest(query), deadline]);
-            return respond(suggestions.map((s) => ({ name: s.slice(0, 100), value: s })));
+            const items = [
+                { name: `🔍 ${query}`.slice(0, 100), value: query },
+                ...suggestions.filter((s) => s !== query).slice(0, 4).map((s) => ({ name: s.slice(0, 100), value: s })),
+            ];
+            return respond(items);
         } catch (err) {
             if (err.message !== "timeout") log.error(`[autocomplete] ${err.message}`);
             const recent = await getHistory(interaction.guildId, LIMITS.AUTOCOMPLETE_RESULTS);
