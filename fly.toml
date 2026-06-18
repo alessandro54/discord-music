@@ -15,7 +15,7 @@ primary_region = 'iad'
   auto_extend_size_limit = '10GB'
 
 [[vm]]
-  memory = '256mb'
+  memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1
 
