@@ -17,7 +17,7 @@ const YOUTUBE_LIST_RE = /[?&]list=/;
 
 async function ytSuggest(query) {
     const res = await fetch(
-        `https://suggestqueries-clients6.youtube.com/complete/search?client=youtube&ds=yt&q=${encodeURIComponent(query)}`
+        `https://suggestqueries-clients6.youtube.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`
     );
     const data = await res.json();
     return (data[1] || []).slice(0, 5);
