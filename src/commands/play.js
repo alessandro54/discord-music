@@ -11,7 +11,7 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
-import { fetchVideoInfo } from "../music/stream.js";
+import { fetchVideoInfo, warmUrlCache } from "../music/stream.js";
 
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 const YOUTUBE_LIST_RE = /[?&]list=/;
@@ -75,7 +75,9 @@ export default {
 
         if (query.length < 2) {
             const recent = await getHistory(interaction.guildId, LIMITS.AUTOCOMPLETE_RESULTS);
-            return respond(recent.map((s) => ({ name: s.title.slice(0, 100), value: s.url })));
+            respond(recent.map((s) => ({ name: s.title.slice(0, 100), value: s.url })));
+            if (recent[0]) warmUrlCache(recent[0].url);
+            return;
         }
 
         const deadline = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 2800));
@@ -93,7 +95,9 @@ export default {
                 YouTube.search(query, { limit: LIMITS.AUTOCOMPLETE_RESULTS, type: "video" }),
                 deadline,
             ]);
-            return respond(results.map((v) => ({ name: (v.title ?? "").slice(0, 100), value: v.url })));
+            respond(results.map((v) => ({ name: (v.title ?? "").slice(0, 100), value: v.url })));
+            results.slice(0, 2).forEach((v) => warmUrlCache(v.url));
+            return;
         } catch (err) {
             if (err.message !== "timeout") log.error(`[autocomplete] ${err.message}`);
             return respond([]);
