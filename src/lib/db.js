@@ -77,7 +77,7 @@ async function initMysql(url) {
 }
 
 export async function initDb() {
-    const url = process.env.DB_URL ?? "";
+    const url = Deno.env.get("DB_URL") ?? "";
     if (url.startsWith("mysql")) {
         adapter = await initMysql(url);
     } else {

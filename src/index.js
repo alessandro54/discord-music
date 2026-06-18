@@ -1,8 +1,4 @@
-import { chmodSync, existsSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
-import { fileURLToPath } from "node:url";
 import { Client, Collection, GatewayIntentBits } from "discord.js";
-import ffmpegPath from "ffmpeg-static";
 import { commands } from "./commands/index.js";
 import guildMemberAdd from "./events/guildMemberAdd.js";
 import interactionCreate from "./events/interactionCreate.js";
@@ -22,15 +18,13 @@ process.on("uncaughtException", (err) =>
 
 log.info(`revision: ${COMMIT_URL ?? COMMIT}`);
 
-const __dir = dirname(fileURLToPath(import.meta.url));
-const ytdlpBin = join(__dir, "yt-dlp");
-if (existsSync(ytdlpBin)) {
-    try {
-        chmodSync(ytdlpBin, 0o755);
-    } catch {}
-    process.env.YTDLP_PATH = ytdlpBin;
-}
-process.env.PATH = `${__dir}${sep}${dirname(ffmpegPath)}${sep}${process.env.PATH}`;
+const ytdlpBin = `${import.meta.dirname}/yt-dlp`;
+try {
+    Deno.statSync(ytdlpBin);
+    try { Deno.chmodSync(ytdlpBin, 0o755); } catch {}
+    Deno.env.set("YTDLP_PATH", ytdlpBin);
+} catch {}
+Deno.env.set("PATH", `${import.meta.dirname}${Deno.build.os === "windows" ? ";" : ":"}${Deno.env.get("PATH")}`);
 
 await initDb();
 
@@ -57,7 +51,7 @@ for (const event of [guildMemberAdd, interactionCreate, ready]) {
 
 setClient(client);
 
-const port = process.env.SERVER_PORT || process.env.PORT || 3000;
+const port = Deno.env.get("SERVER_PORT") || Deno.env.get("PORT") || 3000;
 startServer(port, queues, client);
 
-client.login(process.env.BOT_TOKEN);
+client.login(Deno.env.get("BOT_TOKEN"));

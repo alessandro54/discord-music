@@ -14,7 +14,6 @@
     "npm:@discordjs/voice@*": "0.19.2_@emnapi+core@1.11.1_@emnapi+runtime@1.11.1_ffmpeg-static@5.3.0_opusscript@0.1.1",
     "npm:@discordjs/voice@0.19": "0.19.2_@emnapi+core@1.11.1_@emnapi+runtime@1.11.1_ffmpeg-static@5.3.0_opusscript@0.1.1",
     "npm:discord.js@^14.16.0": "14.26.4",
-    "npm:ffmpeg-static@^5.2.0": "5.3.0",
     "npm:mysql2@^3.11.0": "3.22.5_@types+node@10.17.60",
     "npm:opusscript@~0.1.1": "0.1.1",
     "npm:tweetnacl@*": "1.0.3",
@@ -509,7 +508,6 @@
       "jsr:@db/sqlite@0.12",
       "npm:@discordjs/voice@0.19",
       "npm:discord.js@^14.16.0",
-      "npm:ffmpeg-static@^5.2.0",
       "npm:mysql2@^3.11.0",
       "npm:opusscript@~0.1.1",
       "npm:tweetnacl@^1.0.3"

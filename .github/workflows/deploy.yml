@@ -6,8 +6,8 @@ on:
     branches: [main]
     paths:
       - 'src/**/*.js'
-      - 'package.json'
-      - 'bun.lock'
+      - 'deno.json'
+      - 'deno.lock'
       - 'Dockerfile'
       - 'fly.toml'
       - '.github/workflows/deploy.yml'
@@ -16,13 +16,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      deployments: write
 
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      - uses: actions/checkout@v4
 
       - name: Write build info
         run: |

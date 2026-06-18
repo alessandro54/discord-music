@@ -14,7 +14,7 @@ const spotifyToken = {
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
-                Authorization: `Basic ${Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString("base64")}`,
+                Authorization: `Basic ${btoa(`${Deno.env.get("SPOTIFY_CLIENT_ID")}:${Deno.env.get("SPOTIFY_CLIENT_SECRET")}`)}`,
             },
             body: "grant_type=client_credentials",
         });

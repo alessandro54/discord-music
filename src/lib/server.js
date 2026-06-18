@@ -1,16 +1,14 @@
-import { createServer } from "node:http";
 import { getConfig, setConfig } from "./config.js";
 import { log } from "./logger.js";
 import HTML from "./dashboard.html" with { type: "text" };
 import CONFIG_HTML from "./config.html" with { type: "text" };
 
-function checkAuth(req) {
-    const token = process.env.DASHBOARD_TOKEN;
+function checkAuth(req, url) {
+    const token = Deno.env.get("DASHBOARD_TOKEN");
     if (!token) return true;
-    const url = new URL(req.url, "http://x");
     return (
         url.searchParams.get("token") === token ||
-        req.headers.authorization === `Bearer ${token}`
+        req.headers.get("authorization") === `Bearer ${token}`
     );
 }
 
@@ -33,91 +31,89 @@ function getGuilds(client) {
         id: g.id,
         name: g.name,
         channels: [...g.channels.cache.values()]
-            .filter((c) => c.type === 0) // text channels only
+            .filter((c) => c.type === 0)
             .sort((a, b) => a.position - b.position)
             .map((c) => ({ id: c.id, name: c.name })),
         config: getConfig(g.id),
     }));
 }
 
-function readBody(req) {
-    return new Promise((resolve) => {
-        let body = "";
-        req.on("data", (d) => { body += d; });
-        req.on("end", () => resolve(body));
-    });
-}
-
 export function startServer(port, queues, client) {
-    createServer(async (req, res) => {
-        const url = new URL(req.url, "http://x");
+    Deno.serve({
+        port: Number(port),
+        onListen: ({ hostname, port: p }) => {
+            const token = Deno.env.get("DASHBOARD_TOKEN");
+            const host = Deno.env.get("DASHBOARD_HOST") ?? hostname;
+            const qs = token ? `?token=${token}` : "";
+            log.info(`dashboard → http://${host}:${p}/${qs}`);
+        },
+    }, async (req) => {
+        const url = new URL(req.url);
 
-        if (!checkAuth(req)) {
-            res.writeHead(401);
-            return res.end("Unauthorized");
+        if (!checkAuth(req, url)) {
+            return new Response("Unauthorized", { status: 401 });
         }
 
         if (req.method === "GET" && url.pathname === "/") {
-            res.writeHead(200, { "Content-Type": "text/html" });
-            return res.end(HTML);
+            return new Response(HTML, { headers: { "Content-Type": "text/html" } });
         }
 
         if (req.method === "GET" && url.pathname === "/config") {
-            res.writeHead(200, { "Content-Type": "text/html" });
-            return res.end(CONFIG_HTML);
+            return new Response(CONFIG_HTML, { headers: { "Content-Type": "text/html" } });
         }
 
         if (req.method === "GET" && url.pathname === "/api/guilds") {
-            res.writeHead(200, { "Content-Type": "application/json" });
-            return res.end(JSON.stringify(getGuilds(client)));
+            return new Response(JSON.stringify(getGuilds(client)), {
+                headers: { "Content-Type": "application/json" },
+            });
         }
 
         if (req.method === "POST" && url.pathname.match(/^\/config\/\d+$/)) {
             const guildId = url.pathname.split("/")[2];
-            const body = await readBody(req);
-            const patch = Object.fromEntries(new URLSearchParams(body));
+            const patch = Object.fromEntries(new URLSearchParams(await req.text()));
             setConfig(guildId, patch);
-            res.writeHead(200);
-            return res.end("OK");
+            return new Response("OK");
         }
 
         if (req.method === "GET" && url.pathname === "/events") {
-            res.writeHead(200, {
-                "Content-Type": "text/event-stream",
-                "Cache-Control": "no-cache",
-                Connection: "keep-alive",
+            const enc = new TextEncoder();
+            const stream = new ReadableStream({
+                start(controller) {
+                    let last = "";
+                    const send = () => {
+                        const payload = JSON.stringify(getState(queues, client));
+                        if (payload === last) return;
+                        last = payload;
+                        controller.enqueue(enc.encode(`data: ${payload}\n\n`));
+                    };
+                    send();
+                    const interval = setInterval(send, 2000);
+                    req.signal.addEventListener("abort", () => {
+                        clearInterval(interval);
+                        try { controller.close(); } catch {}
+                    });
+                },
             });
-            let last = "";
-            const send = () => {
-                const payload = JSON.stringify(getState(queues, client));
-                if (payload === last) return;
-                last = payload;
-                res.write(`data: ${payload}\n\n`);
-            };
-            send();
-            const interval = setInterval(send, 2000);
-            req.on("close", () => clearInterval(interval));
-            return;
+            return new Response(stream, {
+                headers: {
+                    "Content-Type": "text/event-stream",
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                },
+            });
         }
 
         const action = url.pathname.match(/^\/guilds\/(\d+)\/(skip|pause|stop)$/);
         if (req.method === "POST" && action) {
             const [, guildId, cmd] = action;
             const q = queues.get(guildId);
-            if (!q) { res.writeHead(404); return res.end("Not found"); }
+            if (!q) return new Response("Not found", { status: 404 });
             if (cmd === "skip") q.skip();
             else if (cmd === "pause") q.paused ? q.resume() : q.pause();
             else if (cmd === "stop") q.stop();
-            res.writeHead(200);
-            return res.end("OK");
+            return new Response("OK");
         }
 
-        res.writeHead(404);
-        res.end("Not found");
-    }).listen(port, () => {
-        const token = process.env.DASHBOARD_TOKEN;
-        const host = process.env.DASHBOARD_HOST ?? `localhost`;
-        const qs = token ? `?token=${token}` : "";
-        log.info(`dashboard → http://${host}:${port}/${qs}`);
+        return new Response("Not found", { status: 404 });
     });
 }
