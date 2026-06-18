@@ -19,7 +19,8 @@ async function ytSuggest(query) {
     const res = await fetch(
         `https://suggestqueries-clients6.youtube.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`
     );
-    const data = await res.json();
+    const buf = await res.arrayBuffer();
+    const data = JSON.parse(new TextDecoder("iso-8859-1").decode(buf));
     return (data[1] || []).slice(0, 5);
 }
 
