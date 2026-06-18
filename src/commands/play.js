@@ -91,15 +91,17 @@ export default {
 
             if (YOUTUBE_RE.test(query)) return respond([]);
 
+            const t0 = Date.now();
             const results = await Promise.race([
                 YouTube.search(query, { limit: LIMITS.AUTOCOMPLETE_RESULTS, type: "video" }),
                 deadline,
             ]);
+            log.info(`[autocomplete] "${query}" → ${results.length} results in ${Date.now() - t0}ms`);
             respond(results.map((v) => ({ name: (v.title ?? "").slice(0, 100), value: v.url })));
             results.slice(0, 2).forEach((v) => warmUrlCache(v.url));
             return;
         } catch (err) {
-            if (err.message !== "timeout") log.error(`[autocomplete] ${err.message}`);
+            log.error(`[autocomplete] "${query}" failed: ${err.message}`);
             return respond([]);
         }
     },
