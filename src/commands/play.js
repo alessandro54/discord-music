@@ -1,5 +1,5 @@
 import { joinVoiceChannel } from "@discordjs/voice";
-import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { YouTube } from "youtube-sr";
 import { COLORS, LIMITS } from "../lib/constants.js";
 import { embed } from "../lib/embeds.js";
@@ -112,7 +112,7 @@ export default {
     async execute(interaction) {
         const voiceChannel = interaction.member.voice.channel;
         if (!voiceChannel) {
-            return interaction.reply({ content: "Join a voice channel first.", ephemeral: true });
+            return interaction.reply({ content: "Join a voice channel first.", flags: MessageFlags.Ephemeral });
         }
 
         const perms = voiceChannel.permissionsFor(interaction.guild.members.me);
@@ -122,7 +122,7 @@ export default {
         ) {
             return interaction.reply({
                 content: "I don't have permission to join or speak in that voice channel.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         }
 

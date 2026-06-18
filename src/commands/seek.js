@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import { requirePlaying } from "../music/guards.js";
 import { formatMs, parseTimestamp } from "../music/utils.js";
 
@@ -21,7 +21,7 @@ export default {
         if (seconds === null || seconds < 0) {
             return interaction.reply({
                 content: "Invalid timestamp. Use `1:30` or `90`.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         }
 

@@ -1,4 +1,4 @@
-import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { getConfig, setConfig } from "../lib/config.js";
 
 export default {
@@ -36,7 +36,7 @@ export default {
                     `Welcome channel: ${config.welcome_channel_id ? `<#${config.welcome_channel_id}>` : "not set"}`,
                     `Rules channel: ${config.rules_channel_id ? `<#${config.rules_channel_id}>` : "not set"}`,
                 ].join("\n"),
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -49,7 +49,7 @@ export default {
         setConfig(interaction.guildId, patch);
         return interaction.reply({
             content: `✅ ${sub === "welcome" ? "Welcome" : "Rules"} channel set to <#${channel.id}>`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     },
 };

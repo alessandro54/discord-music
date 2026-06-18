@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { buildNpComponents, buildNpEmbed } from "../commands/np.js";
 import { log } from "../lib/logger.js";
 import { queues } from "../music/guildQueue.js";
@@ -56,7 +57,7 @@ export default {
             await command.execute(interaction, client);
         } catch (err) {
             log.error(`/${interaction.commandName} — ${err.message}`);
-            const msg = { content: "Command failed.", ephemeral: true };
+            const msg = { content: "Command failed.", flags: MessageFlags.Ephemeral };
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp(msg);
             } else {

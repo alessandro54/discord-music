@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import { LIMITS } from "../lib/constants.js";
 import { getHistory } from "../lib/db.js";
 import { embed } from "../lib/embeds.js";
@@ -12,7 +12,7 @@ export default {
         if (!songs.length)
             return interaction.reply({
                 content: "No history yet.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
 
         return interaction.reply({

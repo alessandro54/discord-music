@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import { LIMITS } from "../lib/constants.js";
 import { embed } from "../lib/embeds.js";
 import { queues } from "../music/guildQueue.js";
@@ -12,7 +12,7 @@ export default {
         if (!queue?.songs.length)
             return interaction.reply({
                 content: "Queue is empty.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
 
         const { songs } = queue;

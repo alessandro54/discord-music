@@ -1,4 +1,4 @@
-import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 
 export default {
     data: new SlashCommandBuilder()
@@ -18,7 +18,7 @@ export default {
         if (!target.kickable)
             return interaction.reply({
                 content: "Cannot kick this user.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         await target.kick(reason);
         await interaction.reply(
