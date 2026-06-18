@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { chmodSync, existsSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";

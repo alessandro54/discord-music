@@ -1,11 +1,17 @@
 {
   "nodeModulesDir": "auto",
   "imports": {
-    "@db/sqlite": "jsr:@db/sqlite@^0.12.0"
+    "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
+    "@discordjs/voice": "npm:@discordjs/voice@^0.19.0",
+    "discord.js": "npm:discord.js@^14.16.0",
+    "ffmpeg-static": "npm:ffmpeg-static@^5.2.0",
+    "mysql2": "npm:mysql2@^3.11.0",
+    "opusscript": "npm:opusscript@^0.1.1",
+    "tweetnacl": "npm:tweetnacl@^1.0.3"
   },
   "tasks": {
-    "start": "deno run --allow-all src/index.js",
-    "dev": "deno run --allow-all --watch src/index.js",
-    "deploy": "deno run --allow-all src/deployCommands.js"
+    "start": "deno run --allow-all --env-file=.env src/index.js",
+    "dev": "deno run --allow-all --env-file=.env --watch src/index.js",
+    "deploy": "deno run --allow-all --env-file=.env src/deployCommands.js"
   }
 }

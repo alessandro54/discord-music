@@ -2,7 +2,7 @@
 
 > **Lightweight, high-performance Discord music bot. Self-hosted. Zero compromise.**
 
-![Node.js](https://img.shields.io/badge/Node.js-v20-339933?logo=node.js&logoColor=white)
+![Deno](https://img.shields.io/badge/Deno-2.x-000000?logo=deno&logoColor=white)
 ![discord.js](https://img.shields.io/badge/discord.js-v14-5865F2?logo=discord&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![CPU](https://img.shields.io/badge/CPU-~5%25_on_playback-brightgreen)
@@ -62,14 +62,18 @@ SPOTIFY_CLIENT_SECRET=
 
 # Optional — protect the web dashboard
 DASHBOARD_TOKEN=your_secret_token
+
+# Optional — YouTube cookies (bypass bot detection on datacenter IPs)
+# Export from browser as Netscape format, paste full content here
+YOUTUBE_COOKIES=
 ```
 
 ### 3. Run
 
 ```bash
-bun install
-bun run deploy   # register slash commands (once)
-bun dev          # local dev with auto-restart
+deno install --allow-scripts
+deno task deploy   # register slash commands (once)
+deno task dev      # local dev with auto-restart
 ```
 
 ---
@@ -79,7 +83,7 @@ bun dev          # local dev with auto-restart
 Push to `main` — GitHub Actions builds Docker image and deploys to Fly.io.
 
 **Required GitHub secret:** `FLY_API_TOKEN`  
-**Required Fly.io secrets:** `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`
+**Required Fly.io secrets:** `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`, `YOUTUBE_COOKIES`
 
 ---
 
@@ -132,25 +136,23 @@ If `DASHBOARD_TOKEN` is set, append `?token=<your_token>` to the URL. The token 
 
 | | |
 |---|---|
-| Runtime | Node.js v20 |
+| Runtime | Deno 2.x |
 | Bot | discord.js v14 |
 | Audio | @discordjs/voice · WebmOpus passthrough · ffmpeg for seeks |
-| Source | yt-dlp (binary, auto-downloaded in CI) |
-| Database | better-sqlite3 (default) · mysql2 (optional) |
-| Build | Bun + bun build |
-| CI/CD | GitHub Actions → Fly.io (Docker) |
+| Source | yt-dlp · Deno for JS challenge solving |
+| Database | @db/sqlite (Deno-native, default) · mysql2 (optional) |
+| Build | No build step — Deno runs src/ directly |
+| CI/CD | GitHub Actions → Fly.io (Docker, iad region, 512MB) |
 
 ---
 
 ## Development
 
 ```bash
-bun install          # install deps
-bun dev              # run with auto-restart
-bun test             # run tests
-bun run lint         # Biome lint
-bun run build        # bundle → dist/index.js
-bun run deploy       # register slash commands
+deno install --allow-scripts   # install deps
+deno task dev                  # run with auto-restart
+deno task start                # run without watch
+deno task deploy               # register slash commands
 ```
 
 ---

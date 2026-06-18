@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && chmod +x /usr/local/bin/yt-dlp \
     && rm -rf /var/lib/apt/lists/*
 
-COPY package.json deno.json deno.lock ./
+COPY deno.json deno.lock ./
 RUN deno install --allow-scripts \
     && deno eval "import '@db/sqlite'" 2>/dev/null || true
 

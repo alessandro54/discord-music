@@ -8,9 +8,7 @@ Personal Discord bot hosted on Fly.io.
 
 ## Stack
 - discord.js v14
-- Node.js v20
-- Bun (local dev)
-- esbuild (bundler)
+- Deno (runtime, local dev + production)
 - Docker (deployment)
 
 ## Bot Info
@@ -19,15 +17,15 @@ Personal Discord bot hosted on Fly.io.
 - Guild ID: 414892529427939338
 
 ## Commands
-- `bun dev` — run with auto-restart (src/ directly)
-- `bun run build` — bundle src/ → dist/
-- `bun run deploy` — register slash commands with Discord API
+- `deno task dev` — run with auto-restart (src/ directly)
+- `deno task deploy` — register slash commands with Discord API
 
 ## .env Required Keys
 ```
 BOT_TOKEN=
 CLIENT_ID=1513765585794895872
 GUILD_ID=414892529427939338
+YOUTUBE_COOKIES=        # Netscape-format cookies — required on datacenter IPs (bot detection bypass)
 ```
 
 ## Architecture
@@ -38,7 +36,7 @@ GUILD_ID=414892529427939338
 - `data` — `SlashCommandBuilder` instance
 - `execute(interaction, client)` — handler
 
-After adding/changing commands, run `bun run deploy` to register with Discord.
+After adding/changing commands, run `deno task deploy` to register with Discord.
 
 **Events** (`src/events/*.js`) — each file exports default `{ name, once?, execute }`:
 - `name` — Discord.js event name
@@ -47,14 +45,21 @@ After adding/changing commands, run `bun run deploy` to register with Discord.
 
 ## Build & Deploy
 
-esbuild bundles `src/index.js` into `dist/index.js`. Native modules (`@discordjs/opus`, `ffmpeg-static`, `@snazzah/davey`) are excluded from bundle and copied to `dist/node_modules/`.
+No build step — Deno runs `src/index.js` directly. `deno.json` defines tasks and JSR imports (`@db/sqlite`). `deno.lock` pins all dependencies.
 
-CI (GitHub Actions) runs on push to `main` when `src/**/*.js`, `package.json`, `bun.lock`, `Dockerfile`, or `fly.toml` changes:
+CI (GitHub Actions) runs on push to `main` when `src/**/*.js`, `package.json`, `deno.json`, `deno.lock`, `Dockerfile`, or `fly.toml` changes:
 1. Write build info (`src/lib/buildInfo.js`)
-2. `flyctl deploy --remote-only` — builds Docker image on Fly, deploys to `gru` region
+2. `flyctl deploy --remote-only` — builds Docker image on Fly, deploys to `iad` region
 
-Fly.io secrets: `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`. GitHub secret: `FLY_API_TOKEN`.
+Fly.io secrets: `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`, `YOUTUBE_COOKIES`. GitHub secret: `FLY_API_TOKEN`.
 SQLite persisted at `/data/bot.db` on a 1GB Fly volume (`bot_data`).
+
+## YouTube Cookies
+Bot detection on Fly iad requires YouTube cookies. Export Netscape-format cookies from a browser logged into YouTube (throwaway account recommended), then:
+```bash
+fly secrets set YOUTUBE_COOKIES="$(cat cookies.txt)" --app discord-music-alr6jw
+```
+Cookies expire periodically (~months). When `/play` starts failing with "Sign in to confirm", re-export and reset.
 
 ## Server Structure
 - 📢 COMMUNITY: #welcome (ID: 902775878075940905), #general, #announcements, #introductions, #memes, #media
