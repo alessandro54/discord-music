@@ -19,10 +19,14 @@ FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg curl ca-certificates \
+    ffmpeg curl ca-certificates unzip \
     && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
        -o /usr/local/bin/yt-dlp \
     && chmod +x /usr/local/bin/yt-dlp \
+    && curl -L https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip \
+       -o /tmp/deno.zip \
+    && unzip /tmp/deno.zip deno -d /usr/local/bin/ \
+    && rm /tmp/deno.zip \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/dist/ ./dist/
