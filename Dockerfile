@@ -19,7 +19,8 @@ RUN curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_
 FROM node:22-alpine AS runtime
 WORKDIR /app
 
-RUN apk add --no-cache ffmpeg
+# ffmpeg for audio, gcompat to run glibc yt-dlp binary on musl/Alpine
+RUN apk add --no-cache ffmpeg gcompat
 
 COPY --from=build /app/dist/ ./dist/
 COPY --from=build /app/node_modules/ ./node_modules/
