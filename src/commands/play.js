@@ -11,7 +11,7 @@ import {
     isSpotifyUrl,
     resolveSpotify,
 } from "../music/spotify.js";
-import { fetchVideoInfo, warmUrlCache } from "../music/stream.js";
+import { fetchVideoInfo } from "../music/stream.js";
 
 const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/;
 const YOUTUBE_LIST_RE = /[?&]list=/;
@@ -78,7 +78,7 @@ export default {
             return respond(recent.map((s) => ({ name: s.title.slice(0, 100), value: s.url })));
         }
 
-        const deadline = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 2500));
+        const deadline = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 2800));
 
         try {
             if (isSpotifyUrl(query)) {
