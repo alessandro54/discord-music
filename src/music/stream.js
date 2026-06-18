@@ -1,10 +1,23 @@
 import { spawn } from "node:child_process";
+import { writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { createAudioResource, StreamType } from "@discordjs/voice";
 import { log } from "../lib/logger.js";
 
 const YTDLP = process.env.YTDLP_PATH || join(dirname(process.argv[1]), "yt-dlp");
 const YTDLP_FAST = ["--no-check-formats", "--extractor-args", "youtube:skip=dash,hls"];
+
+const COOKIES_PATH = "/tmp/yt-cookies.txt";
+let COOKIES_ARGS = [];
+if (process.env.YOUTUBE_COOKIES) {
+    try {
+        writeFileSync(COOKIES_PATH, process.env.YOUTUBE_COOKIES);
+        COOKIES_ARGS = ["--cookies", COOKIES_PATH];
+        log.info("[stream] YouTube cookies loaded");
+    } catch (err) {
+        log.error(`[stream] Failed to write cookies: ${err.message}`);
+    }
+}
 const AUDIO_FMT = "bestaudio[ext=webm][acodec=opus]/bestaudio[ext=opus]/bestaudio";
 const URL_TTL = 4 * 60 * 60 * 1000; // 4h
 
@@ -26,7 +39,7 @@ function fmtSecs(s) {
 export function fetchVideoInfo(url) {
     return new Promise((resolve, reject) => {
         const proc = spawn(YTDLP, [
-            "--no-playlist", "--quiet", "--no-warnings", ...YTDLP_FAST,
+            "--no-playlist", "--quiet", "--no-warnings", ...YTDLP_FAST, ...COOKIES_ARGS,
             "-f", AUDIO_FMT,
             "--print", "title",
             "--print", "duration",
@@ -64,7 +77,7 @@ export function warmUrlCache(url) {
 export function searchVideo(query) {
     return new Promise((resolve, reject) => {
         const proc = spawn(YTDLP, [
-            "--no-playlist", "--quiet", "--no-warnings", ...YTDLP_FAST,
+            "--no-playlist", "--quiet", "--no-warnings", ...YTDLP_FAST, ...COOKIES_ARGS,
             "-f", AUDIO_FMT,
             "--print", "title",
             "--print", "duration",
@@ -94,7 +107,7 @@ export function searchVideo(query) {
 export function fetchPlaylistItems(url, limit) {
     return new Promise((resolve, reject) => {
         const proc = spawn(YTDLP, [
-            "--flat-playlist", "--dump-json", "--quiet", "--no-warnings",
+            "--flat-playlist", "--dump-json", "--quiet", "--no-warnings", ...COOKIES_ARGS,
             "--playlist-end", String(limit),
             url,
         ]);
@@ -154,7 +167,7 @@ function _ffmpegUrl(streamUrl) {
 }
 
 function _ytdlpStream(url, seekSeconds) {
-    const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", ...YTDLP_FAST];
+    const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", ...YTDLP_FAST, ...COOKIES_ARGS];
 
     if (seekSeconds > 0) {
         args.push(
