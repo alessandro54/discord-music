@@ -1,0 +1,11 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "@db/sqlite": "jsr:@db/sqlite@^0.12.0"
+  },
+  "tasks": {
+    "start": "deno run --allow-all src/index.js",
+    "dev": "deno run --allow-all --watch src/index.js",
+    "deploy": "deno run --allow-all src/deployCommands.js"
+  }
+}
