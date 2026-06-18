@@ -3,7 +3,7 @@ import { log } from "./logger.js";
 let adapter;
 
 async function initSqlite(path) {
-    const { default: Database } = await import("better-sqlite3");
+    const { Database } = await import("@db/sqlite");
     const db = new Database(path);
     db.exec(`CREATE TABLE IF NOT EXISTS song_history (
         id        INTEGER PRIMARY KEY AUTOINCREMENT,

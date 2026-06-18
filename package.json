@@ -14,17 +14,15 @@
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.0",
-    "better-sqlite3": "^12.11.1",
     "discord.js": "^14.16.0",
     "dotenv": "^16.0.0",
     "ffmpeg-static": "^5.2.0",
+    "tweetnacl": "^1.0.3",
     "mysql2": "^3.11.0",
     "opusscript": "^0.1.1",
-    "sodium-native": "^5.1.0",
     "youtubei.js": "^17.0.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.0",
-    "@types/better-sqlite3": "^7.6.13"
+    "@biomejs/biome": "^2.5.0"
   }
 }
