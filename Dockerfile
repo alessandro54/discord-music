@@ -13,17 +13,14 @@ RUN npx --yes esbuild src/index.js \
     --bundle --platform=node --format=esm --outfile=dist/index.js \
     --packages=external
 
-RUN curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
-    -o dist/yt-dlp && chmod +x dist/yt-dlp
-
 FROM node:22-alpine AS runtime
 WORKDIR /app
 
-# ffmpeg for audio, gcompat to run glibc yt-dlp binary on musl/Alpine
-RUN apk add --no-cache ffmpeg gcompat
+RUN apk add --no-cache ffmpeg yt-dlp
 
 COPY --from=build /app/dist/ ./dist/
 COPY --from=build /app/node_modules/ ./node_modules/
 
 ENV NODE_ENV=production
+ENV YTDLP_PATH=/usr/bin/yt-dlp
 CMD ["node", "dist/index.js"]
