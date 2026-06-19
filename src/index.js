@@ -1,4 +1,4 @@
-import { Client, Collection, GatewayIntentBits } from "discord.js";
+import { Client, Collection, GatewayIntentBits, Options } from "discord.js";
 import { commands } from "./commands/index.js";
 import guildMemberAdd from "./events/guildMemberAdd.js";
 import interactionCreate from "./events/interactionCreate.js";
@@ -32,10 +32,21 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
     ],
+    makeCache: Options.cacheWithLimits({
+        MessageManager: 0,
+        GuildMemberManager: 50,
+        UserManager: 50,
+        PresenceManager: 0,
+        GuildStickerManager: 0,
+        GuildInviteManager: 0,
+        ReactionManager: 0,
+        ReactionUserManager: 0,
+        StageInstanceManager: 0,
+        ThreadManager: 0,
+        ThreadMemberManager: 0,
+    }),
 });
 
 client.commands = new Collection();
