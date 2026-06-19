@@ -41,28 +41,22 @@ function fmtSecs(s) {
         : `${m}:${String(s % 60).padStart(2, "0")}`;
 }
 
-// single yt-dlp spawn → title + duration + stream URL
+// single yt-dlp spawn → title + duration only (no format resolution)
 export async function fetchVideoInfo(url) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
             "--no-playlist", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS,
-            "-f", AUDIO_FMT,
-            "--print", "title", "--print", "duration", "--print", "url",
+            "--print", "title", "--print", "duration",
             url,
         ],
         stdout: "piped",
         stderr: "piped",
     }).output();
     if (code !== 0) throw new Error(`yt-dlp failed (${code}): ${dec.decode(stderr).trim()}`);
-    const [title, durStr, streamUrl] = dec.decode(stdout).trim().split("\n");
-    if (!title || !streamUrl) throw new Error("incomplete yt-dlp output");
+    const [title, durStr] = dec.decode(stdout).trim().split("\n");
+    if (!title) throw new Error("incomplete yt-dlp output");
     const duration = fmtSecs(parseInt(durStr, 10) || 0);
-    const videoId = extractVideoId(url);
-    if (videoId && streamUrl) {
-        if (urlCache.size >= 100) urlCache.delete(urlCache.keys().next().value);
-        urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL });
-    }
-    return { title, url, duration, streamUrl };
+    return { title, url, duration };
 }
 
 // search YouTube and return first result with stream URL cached
