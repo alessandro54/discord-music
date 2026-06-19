@@ -7,7 +7,7 @@ import {
 import { TIMEOUTS } from "../lib/constants.js";
 import { saveSong } from "../lib/db.js";
 import { log } from "../lib/logger.js";
-import { createStream, searchVideo, warmUrlCache } from "./stream.js";
+import { createStream, searchVideo } from "./stream.js";
 
 export const queues = new Map();
 
@@ -146,7 +146,6 @@ export class GuildQueue {
             this.playing = true;
             updateActivity();
             const next = this.songs[1];
-            if (next?.url) warmUrlCache(next.url);
             log.music(
                 `${log.bold(song.title)} ${log.gray(`· ${song.duration} · by ${song.requestedBy}`)}`,
             );

@@ -3,7 +3,6 @@ import { createAudioResource, StreamType } from "@discordjs/voice";
 import { log } from "../lib/logger.js";
 
 const YTDLP = Deno.env.get("YTDLP_PATH") || `${import.meta.dirname}/yt-dlp`;
-const YTDLP_FAST = ["--no-check-formats"];
 
 const COOKIES_PATH = "/tmp/yt-cookies.txt";
 let COOKIES_ARGS = [];
@@ -17,6 +16,13 @@ if (cookies) {
         log.error(`[stream] Failed to write cookies: ${err.message}`);
     }
 }
+// persist player JS cache to Fly volume so it survives restarts
+let CACHE_ARGS = [];
+try {
+    Deno.mkdirSync("/data/ytdlp-cache", { recursive: true });
+    CACHE_ARGS = ["--cache-dir", "/data/ytdlp-cache"];
+} catch { /* /data not available in local dev — use default cache */ }
+
 const AUDIO_FMT = "bestaudio[ext=webm][acodec=opus]/bestaudio[ext=opus]/bestaudio";
 const URL_TTL = 4 * 60 * 60 * 1000; // 4h
 
@@ -39,7 +45,7 @@ function fmtSecs(s) {
 export async function fetchVideoInfo(url) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
-            "--no-playlist", "--quiet", "--no-warnings", ...YTDLP_FAST, ...COOKIES_ARGS,
+            "--no-playlist", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS,
             "-f", AUDIO_FMT,
             "--print", "title", "--print", "duration", "--print", "url",
             url,
@@ -52,24 +58,18 @@ export async function fetchVideoInfo(url) {
     if (!title || !streamUrl) throw new Error("incomplete yt-dlp output");
     const duration = fmtSecs(parseInt(durStr, 10) || 0);
     const videoId = extractVideoId(url);
-    if (videoId && streamUrl) urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL });
+    if (videoId && streamUrl) {
+        if (urlCache.size >= 100) urlCache.delete(urlCache.keys().next().value);
+        urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL });
+    }
     return { title, url, duration, streamUrl };
-}
-
-// warm URL cache for next song (one spawn in background)
-export function warmUrlCache(url) {
-    const videoId = extractVideoId(url);
-    if (!videoId) return;
-    const cached = urlCache.get(videoId);
-    if (cached && cached.expiresAt > Date.now()) return;
-    fetchVideoInfo(url).catch(() => {});
 }
 
 // search YouTube and return first result with stream URL cached
 export async function searchVideo(query) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
-            "--no-playlist", "--quiet", "--no-warnings", ...YTDLP_FAST, ...COOKIES_ARGS,
+            "--no-playlist", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS,
             "-f", AUDIO_FMT,
             "--print", "title", "--print", "duration", "--print", "webpage_url", "--print", "url",
             `ytsearch1:${query}`,
@@ -82,7 +82,10 @@ export async function searchVideo(query) {
     if (!title || !webpageUrl) throw new Error("incomplete yt-dlp output");
     const duration = fmtSecs(parseInt(durStr, 10) || 0);
     const videoId = extractVideoId(webpageUrl);
-    if (videoId && streamUrl) urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL });
+    if (videoId && streamUrl) {
+        if (urlCache.size >= 100) urlCache.delete(urlCache.keys().next().value);
+        urlCache.set(videoId, { streamUrl, expiresAt: Date.now() + URL_TTL });
+    }
     return { title, url: webpageUrl, duration };
 }
 
@@ -90,7 +93,7 @@ export async function searchVideo(query) {
 export async function fetchPlaylistItems(url, limit) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
-            "--flat-playlist", "--dump-json", "--quiet", "--no-warnings", ...COOKIES_ARGS,
+            "--flat-playlist", "--dump-json", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS,
             "--playlist-end", String(limit),
             url,
         ],
@@ -147,7 +150,7 @@ function _ffmpegUrl(streamUrl) {
 }
 
 function _ytdlpStream(url, seekSeconds) {
-    const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", ...YTDLP_FAST, ...COOKIES_ARGS];
+    const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS];
 
     if (seekSeconds > 0) {
         args.push(
@@ -190,3 +193,4 @@ function _ytdlpStream(url, seekSeconds) {
     resource._procs = [ytdlp];
     return resource;
 }
+
