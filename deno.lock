@@ -524,7 +524,8 @@
       "npm:discord.js@^14.16.0",
       "npm:mysql2@^3.11.0",
       "npm:opusscript@~0.1.1",
-      "npm:tweetnacl@^1.0.3"
+      "npm:tweetnacl@^1.0.3",
+      "npm:youtubei.js@17"
     ]
   }
 }
