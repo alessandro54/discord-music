@@ -19,4 +19,4 @@ COPY src/ ./src/
 ENV NODE_ENV=production \
     YTDLP_PATH=/usr/local/bin/yt-dlp
 
-CMD ["deno", "run", "--allow-all", "--cached-only", "--v8-flags=--max-old-space-size=160", "src/index.js"]
+CMD ["deno", "run", "--allow-all", "--cached-only", "--v8-flags=--max-old-space-size=128,--jitless", "src/index.js"]
