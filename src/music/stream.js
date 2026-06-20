@@ -5,7 +5,6 @@ import { log } from "../lib/logger.js";
 const YTDLP = Deno.env.get("YTDLP_PATH") || `${import.meta.dirname}/yt-dlp`;
 
 const COOKIES_PATH = "/tmp/yt-cookies.txt";
-const ANDROID_ARGS = ["--extractor-args", "youtube:player_client=android"];
 let COOKIES_ARGS = [];
 const cookies = Deno.env.get("YOUTUBE_COOKIES");
 if (cookies) {
@@ -46,7 +45,7 @@ function fmtSecs(s) {
 export async function fetchVideoInfo(url) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
-            "--no-playlist", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS, ...ANDROID_ARGS,
+            "--no-playlist", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS,
             "--print", "title", "--print", "duration",
             url,
         ],
@@ -64,7 +63,7 @@ export async function fetchVideoInfo(url) {
 export async function searchVideo(query) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
-            "--no-playlist", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS, ...ANDROID_ARGS,
+            "--no-playlist", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS,
             "-f", AUDIO_FMT, "--no-check-formats",
             "--print", "title", "--print", "duration", "--print", "webpage_url", "--print", "url",
             `ytsearch1:${query}`,
@@ -145,7 +144,7 @@ function _ffmpegUrl(streamUrl) {
 }
 
 function _ytdlpStream(url, seekSeconds) {
-    const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", "--no-check-formats", ...COOKIES_ARGS, ...CACHE_ARGS, ...ANDROID_ARGS];
+    const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", "--no-check-formats", ...COOKIES_ARGS, ...CACHE_ARGS];
 
     if (seekSeconds > 0) {
         args.push(
