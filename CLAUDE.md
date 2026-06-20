@@ -55,7 +55,8 @@ Fly.io secrets: `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`, `YOUTUBE_COOKIES`. GitHub 
 SQLite persisted at `/data/bot.db` on a 1GB Fly volume (`bot_data`).
 
 ## YouTube Cookies
-Bot detection on Fly iad requires YouTube cookies. Export Netscape-format cookies from a browser logged into YouTube (throwaway account recommended), then:
+Bot detection on Fly **iad** (US) requires YouTube cookies — **gru** (Brazil) does not.
+If region is ever switched back to iad, export Netscape-format cookies from a browser logged into YouTube (throwaway account), then:
 ```bash
 fly secrets set YOUTUBE_COOKIES="$(cat cookies.txt)" --app discord-music-alr6jw
 ```
