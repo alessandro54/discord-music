@@ -64,7 +64,7 @@ export async function searchVideo(query) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
             "--no-playlist", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS,
-            "-f", AUDIO_FMT,
+            "-f", AUDIO_FMT, "--no-check-formats",
             "--print", "title", "--print", "duration", "--print", "webpage_url", "--print", "url",
             `ytsearch1:${query}`,
         ],
@@ -144,7 +144,7 @@ function _ffmpegUrl(streamUrl) {
 }
 
 function _ytdlpStream(url, seekSeconds) {
-    const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS];
+    const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", "--no-check-formats", ...COOKIES_ARGS, ...CACHE_ARGS];
 
     if (seekSeconds > 0) {
         args.push(
