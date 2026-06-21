@@ -16,11 +16,13 @@ The result: ~5% CPU instead of 50%. No quality loss. No added latency.
 ## Why music-bot?
 
 - **WebmOpus passthrough** — zero transcoding, lowest CPU of any self-hosted bot
-- **yt-dlp backend** — battle-tested, updated daily, handles everything YouTube throws at it
+- **In-process search** — YouTube search + metadata via youtubei.js (Innertube), no subprocess
+- **yt-dlp streaming** — battle-tested, updated daily, handles everything YouTube throws at it
 - **Self-hosted** — your server, your data, no subscriptions, no rate limits
 - **SQLite out of the box** — no database to set up, works on day one
 - **Web dashboard** — live queue, controls, and per-guild config from your browser
 - **Spotify support** — tracks, albums, playlists resolved to YouTube automatically
+- **Album art** — Now Playing embeds show Spotify/YouTube cover art
 
 ---
 
@@ -28,11 +30,13 @@ The result: ~5% CPU instead of 50%. No quality loss. No added latency.
 
 - Play from YouTube (URL, search, playlist) or Spotify (track, album, playlist)
 - Queue with position tracking, skip, seek, pause/resume, stop
-- `/np` — now playing embed with inline buttons
+- `/np` — now playing embed with album art + inline buttons
+- Autocomplete returns live YouTube video results (title + duration); recent history when empty
 - Song history (SQLite by default)
 - Web dashboard with live queue + skip/pause/stop controls
 - Per-guild config (welcome channel, rules channel) via dashboard or `/setup`
-- Autocomplete shows recent history when query is empty
+- `/debug` — owner-gated health snapshot (memory, live streams, queue state)
+- Resilient playback: stall watchdog skips a hung stream; auto-retries transient 403s
 
 ---
 
@@ -58,7 +62,9 @@ SPOTIFY_CLIENT_SECRET=
 
 # Optional — override default SQLite path (./bot.db)
 # DB_URL=sqlite:./custom.db
-# DB_URL=mysql://user:pass@host:3306/dbname
+
+# Optional — restrict /debug to a single Discord user id (admin-only otherwise)
+OWNER_ID=
 
 # Optional — protect the web dashboard
 DASHBOARD_TOKEN=your_secret_token
@@ -80,10 +86,13 @@ deno task dev      # local dev with auto-restart
 
 ## Deployment
 
-Push to `main` — GitHub Actions builds Docker image and deploys to Fly.io.
+Push to `main` — GitHub Actions builds the Docker image and deploys to Fly.io. A Fly
+`release_command` re-registers slash commands on every deploy, so you only run
+`deno task deploy` manually for local dev.
 
 **Required GitHub secret:** `FLY_API_TOKEN`  
-**Required Fly.io secrets:** `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`, `YOUTUBE_COOKIES`
+**Required Fly.io secrets:** `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`  
+**Optional Fly.io secrets:** `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `OWNER_ID`, `YOUTUBE_COOKIES`
 
 ---
 
@@ -128,6 +137,7 @@ If `DASHBOARD_TOKEN` is set, append `?token=<your_token>` to the URL. The token 
 | `/coinflip` | Flip a coin |
 | `/kick` / `/timeout` | Moderation |
 | `/serverinfo` | Server stats |
+| `/debug` | Health snapshot — memory, live streams, queue state (owner/admin only) |
 | `/help` | All commands |
 
 ---
@@ -139,10 +149,33 @@ If `DASHBOARD_TOKEN` is set, append `?token=<your_token>` to the URL. The token 
 | Runtime | Deno 2.x |
 | Bot | discord.js v14 |
 | Audio | @discordjs/voice · WebmOpus passthrough · ffmpeg for seeks |
-| Source | yt-dlp · Deno for JS challenge solving |
-| Database | @db/sqlite (Deno-native, default) · mysql2 (optional) |
+| Search/metadata | youtubei.js (Innertube), in-process |
+| Streaming | yt-dlp (bundled binary) |
+| Database | @db/sqlite (Deno-native) |
 | Build | No build step — Deno runs src/ directly |
-| CI/CD | GitHub Actions → Fly.io (Docker, iad region, 512MB) |
+| CI/CD | GitHub Actions → Fly.io (Docker, gru region, 512MB + swap) |
+
+---
+
+## Architecture
+
+Layered — commands are thin controllers; logic lives in services, rendering in views.
+
+```
+src/
+  commands/   slash-command handlers (parse → service → view → reply)
+  events/     discord event handlers
+  services/   music/ (guildQueue, stream, spotify, resolver, playback), health
+  views/      embed builders
+  lib/        guards, utils, db, embeds, constants, logger, server
+```
+
+- **Search vs playback split:** `searchVideo`/`fetchVideoInfo` use Innertube (in-process);
+  `createStream` uses yt-dlp. Innertube can't reliably decipher stream URLs in Deno, so
+  yt-dlp stays for playback.
+- **Process hygiene:** each play spawns a yt-dlp child (~70MB). `destroyResource` reaps it
+  (SIGTERM → await exit → SIGKILL fallback) on skip/stop/idle. Skipping the reap leaks
+  memory and OOM-kills the bot on the 512MB VM.
 
 ---
 
