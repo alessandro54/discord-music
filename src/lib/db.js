@@ -30,60 +30,21 @@ async function initSqlite(path) {
     return {
         saveSong: ({ guildId, userId, userTag, title, url, duration }) => {
             try {
-                if (!dedup.get(guildId, url)) insert.run(guildId, userId, userTag, title, url, String(duration));
+                // @db/sqlite rejects undefined binds — coerce to null.
+                const n = (v) => v ?? null;
+                if (!dedup.get(n(guildId), n(url))) {
+                    insert.run(n(guildId), n(userId), n(userTag), n(title), n(url), duration == null ? null : String(duration));
+                }
             } catch (err) { log.error(`saveSong: ${err.message}`); }
         },
         getHistory: (guildId, limit) => select.all(guildId, limit),
     };
 }
 
-async function initMysql(url) {
-    const { default: mysql } = await import("mysql2/promise");
-    const pool = mysql.createPool(url);
-    await pool.query(`CREATE TABLE IF NOT EXISTS song_history (
-        id         INT AUTO_INCREMENT PRIMARY KEY,
-        guild_id   VARCHAR(32)  NOT NULL,
-        user_id    VARCHAR(32),
-        user_tag   VARCHAR(64),
-        title      VARCHAR(512),
-        url        VARCHAR(512),
-        duration   VARCHAR(32),
-        played_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_guild (guild_id),
-        INDEX idx_user  (user_id)
-    )`);
-    log.db("MySQL connected, tables ready");
-    return {
-        saveSong: async ({ guildId, userId, userTag, title, url, duration }) => {
-            try {
-                const [rows] = await pool.query(
-                    "SELECT id FROM song_history WHERE guild_id = ? AND url = ? AND played_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE) LIMIT 1",
-                    [guildId, url],
-                );
-                if (!rows.length) await pool.query(
-                    "INSERT INTO song_history (guild_id, user_id, user_tag, title, url, duration) VALUES (?, ?, ?, ?, ?, ?)",
-                    [guildId, userId, userTag, title, url, String(duration)],
-                );
-            } catch (err) { log.error(`saveSong: ${err.message}`); }
-        },
-        getHistory: async (guildId, limit) => {
-            const [rows] = await pool.query(
-                "SELECT title, url, user_tag, duration, played_at FROM song_history WHERE guild_id = ? ORDER BY played_at DESC LIMIT ?",
-                [guildId, limit],
-            );
-            return rows;
-        },
-    };
-}
-
 export async function initDb() {
     const url = Deno.env.get("DB_URL") ?? "";
-    if (url.startsWith("mysql")) {
-        adapter = await initMysql(url);
-    } else {
-        const path = url.startsWith("sqlite:") ? url.slice(7) : "./bot.db";
-        adapter = await initSqlite(path);
-    }
+    const path = url.startsWith("sqlite:") ? url.slice(7) : "./bot.db";
+    adapter = await initSqlite(path);
 }
 
 export async function saveSong(data) {
