@@ -7,7 +7,7 @@ import { COMMIT, COMMIT_URL } from "./lib/buildInfo.js";
 import { initDb } from "./lib/db.js";
 import { log } from "./lib/logger.js";
 import { startServer } from "./lib/server.js";
-import { queues, setClient } from "./music/guildQueue.js";
+import { queues, setClient } from "./services/music/guildQueue.js";
 
 process.on("unhandledRejection", (err) =>
     log.error(`unhandledRejection: ${err}`),

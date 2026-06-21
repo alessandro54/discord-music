@@ -1,9 +1,10 @@
-import { LIMITS } from "../lib/constants.js";
-import { formatMs } from "./utils.js";
+import { LIMITS } from "../../lib/constants.js";
+import { formatMs } from "../../lib/utils.js";
 
-const TRACK_RE = /open\.spotify\.com\/track\/([A-Za-z0-9]+)/;
-const PLAYLIST_RE = /open\.spotify\.com\/playlist\/([A-Za-z0-9]+)/;
-const ALBUM_RE = /open\.spotify\.com\/album\/([A-Za-z0-9]+)/;
+// Spotify injects an optional locale segment (e.g. /intl-es/) before the type.
+const TRACK_RE = /open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/([A-Za-z0-9]+)/;
+const PLAYLIST_RE = /open\.spotify\.com\/(?:intl-[a-z]+\/)?playlist\/([A-Za-z0-9]+)/;
+const ALBUM_RE = /open\.spotify\.com\/(?:intl-[a-z]+\/)?album\/([A-Za-z0-9]+)/;
 
 const spotifyToken = {
     value: null,
@@ -35,21 +36,22 @@ async function spotifyFetch(path) {
     return res.json();
 }
 
-function trackToSong(track, requestedBy) {
+function trackToSong(track, requestedBy, requestedById) {
     return {
         title: `${track.name} — ${track.artists[0].name}`,
         url: null,
         duration: formatMs(track.duration_ms),
         requestedBy,
+        requestedById,
         spotifyTrack: { name: track.name, artists: track.artists },
     };
 }
 
-export async function resolveSpotify(url, requestedBy) {
+export async function resolveSpotify(url, requestedBy, requestedById) {
     const trackMatch = url.match(TRACK_RE);
     if (trackMatch) {
         const track = await spotifyFetch(`/tracks/${trackMatch[1]}`);
-        return { songs: [trackToSong(track, requestedBy)], playlistName: null };
+        return { songs: [trackToSong(track, requestedBy, requestedById)], playlistName: null };
     }
 
     const playlistMatch = url.match(PLAYLIST_RE);
@@ -60,7 +62,7 @@ export async function resolveSpotify(url, requestedBy) {
         const songs = playlist.tracks.items
             .filter((i) => i.track)
             .slice(0, LIMITS.PLAYLIST_MAX)
-            .map((i) => trackToSong(i.track, requestedBy));
+            .map((i) => trackToSong(i.track, requestedBy, requestedById));
         return { songs, playlistName: playlist.name };
     }
 
@@ -74,7 +76,7 @@ export async function resolveSpotify(url, requestedBy) {
         );
         const songs = album.items
             .slice(0, LIMITS.PLAYLIST_MAX)
-            .map((t) => trackToSong(t, requestedBy));
+            .map((t) => trackToSong(t, requestedBy, requestedById));
         return { songs, playlistName: albumInfo.name };
     }
 

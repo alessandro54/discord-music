@@ -1,6 +1,6 @@
 import { MessageFlags, SlashCommandBuilder } from "discord.js";
-import { requirePlaying } from "../music/guards.js";
-import { formatMs, parseTimestamp } from "../music/utils.js";
+import { requirePlaying } from "../lib/guards.js";
+import { formatMs, parseTimestamp } from "../lib/utils.js";
 
 export default {
     data: new SlashCommandBuilder()

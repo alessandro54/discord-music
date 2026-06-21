@@ -14,6 +14,7 @@ export const LIMITS = {
 export const TIMEOUTS = {
     QUEUE_IDLE_MS: 30_000,
     VOICE_RECONNECT_MS: 5_000,
+    STREAM_STALL_MS: 25_000, // skip if a track stays buffering this long (yt-dlp stalled)
 };
 
 export const POLL_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"];

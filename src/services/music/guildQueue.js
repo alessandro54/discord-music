@@ -4,9 +4,9 @@ import {
     entersState,
     VoiceConnectionStatus,
 } from "@discordjs/voice";
-import { TIMEOUTS } from "../lib/constants.js";
-import { saveSong } from "../lib/db.js";
-import { log } from "../lib/logger.js";
+import { TIMEOUTS } from "../../lib/constants.js";
+import { saveSong } from "../../lib/db.js";
+import { log } from "../../lib/logger.js";
 import { createStream, destroyResource, searchVideo } from "./stream.js";
 
 export const queues = new Map();
@@ -33,10 +33,24 @@ export class GuildQueue {
         this.player = createAudioPlayer();
         this.playing = false;
         this._idleTimeout = null;
+        this._stallTimeout = null;
         this.resource = null;
         this.seekOffset = 0;
 
+        // Stall watchdog: yt-dlp can be slow to first byte (or hang silently) on
+        // a datacenter IP, leaving the player stuck in Buffering with no error and
+        // no progress. If it buffers too long, skip to the next track.
+        this.player.on(AudioPlayerStatus.Buffering, () => {
+            clearTimeout(this._stallTimeout);
+            this._stallTimeout = setTimeout(() => {
+                log.error(`[Queue ${this.guildId}] Stream stalled (buffering > ${TIMEOUTS.STREAM_STALL_MS}ms), skipping`);
+                this.player.stop(); // → Idle → advance
+            }, TIMEOUTS.STREAM_STALL_MS);
+        });
+        this.player.on(AudioPlayerStatus.Playing, () => clearTimeout(this._stallTimeout));
+
         this.player.on(AudioPlayerStatus.Idle, () => {
+            clearTimeout(this._stallTimeout);
             this._killStream();
             this.seekOffset = 0;
             this.songs.shift();
@@ -146,7 +160,6 @@ export class GuildQueue {
             this.player.play(resource);
             this.playing = true;
             updateActivity();
-            const next = this.songs[1];
             log.music(
                 `${log.bold(song.title)} ${log.gray(`· ${song.duration} · by ${song.requestedBy}`)}`,
             );
@@ -202,6 +215,7 @@ export class GuildQueue {
 
     destroy() {
         clearTimeout(this._idleTimeout);
+        clearTimeout(this._stallTimeout);
         this._killStream();
         this.connection?.destroy();
         this.connection = null;

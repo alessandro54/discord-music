@@ -80,14 +80,25 @@ export function startServer(port, queues, client) {
             const stream = new ReadableStream({
                 start(controller) {
                     let last = "";
+                    let stopped = false;
                     const send = () => {
-                        const payload = JSON.stringify(getState(queues, client));
-                        if (payload === last) return;
-                        last = payload;
-                        controller.enqueue(enc.encode(`data: ${payload}\n\n`));
+                        if (stopped) return;
+                        try {
+                            const payload = JSON.stringify(getState(queues, client));
+                            if (payload === last) return;
+                            last = payload;
+                            controller.enqueue(enc.encode(`data: ${payload}\n\n`));
+                        } catch {
+                            // Client gone / controller closed without an abort event —
+                            // flag so the interval stops firing (and throwing) forever.
+                            stopped = true;
+                        }
                     };
                     send();
-                    const interval = setInterval(send, 2000);
+                    const interval = setInterval(() => {
+                        send();
+                        if (stopped) clearInterval(interval);
+                    }, 2000);
                     req.signal.addEventListener("abort", () => {
                         clearInterval(interval);
                         try { controller.close(); } catch {}

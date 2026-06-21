@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
-import { requirePlaying } from "../music/guards.js";
+import { requirePlaying } from "../lib/guards.js";
 
 export default {
     data: new SlashCommandBuilder()

@@ -1,7 +1,7 @@
 import { Readable } from "node:stream";
 import { createAudioResource, StreamType } from "@discordjs/voice";
 import { Innertube } from "youtubei.js";
-import { log } from "../lib/logger.js";
+import { log } from "../../lib/logger.js";
 
 const YTDLP = Deno.env.get("YTDLP_PATH") || `${import.meta.dirname}/yt-dlp`;
 
@@ -55,15 +55,20 @@ export async function fetchVideoInfo(url) {
     return { title, url, duration: fmtSecs(info.basic_info?.duration ?? 0) };
 }
 
-export async function searchVideo(query) {
+export async function searchVideos(query, limit = 5) {
     const yt = await getInnertube();
     const results = await yt.search(query, { type: "video" });
-    const video = results.videos?.[0];
-    if (!video) throw new Error(`no results for "${query}"`);
-    const title = String(video.title?.text ?? video.title ?? query);
-    const url = `https://www.youtube.com/watch?v=${video.id}`;
-    const duration = video.duration?.text ?? fmtSecs(video.duration?.seconds ?? 0);
-    return { title, url, duration };
+    return (results.videos ?? []).slice(0, limit).map((video) => ({
+        title: String(video.title?.text ?? video.title ?? query),
+        url: `https://www.youtube.com/watch?v=${video.id}`,
+        duration: video.duration?.text ?? fmtSecs(video.duration?.seconds ?? 0),
+    }));
+}
+
+export async function searchVideo(query) {
+    const [first] = await searchVideos(query, 1);
+    if (!first) throw new Error(`no results for "${query}"`);
+    return first;
 }
 
 export async function fetchPlaylistItems(url, limit) {
@@ -125,7 +130,15 @@ export async function destroyResource(resource) {
 }
 
 function _ytdlpStream(url, seekSeconds) {
-    const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", "--no-check-formats", ...COOKIES_ARGS, ...CACHE_ARGS];
+    const args = [
+        "--no-playlist", "-o", "-", "--quiet", "--no-warnings", "--no-check-formats",
+        // Transient googlevideo 403s: retry the download and re-run the
+        // extractor (fresh media URL) before giving up on the track.
+        "--retries", "5", "--fragment-retries", "5", "--extractor-retries", "3",
+        // Fail a dead/stalled connection fast instead of hanging the stream.
+        "--socket-timeout", "15",
+        ...COOKIES_ARGS, ...CACHE_ARGS,
+    ];
 
     if (seekSeconds > 0) {
         args.push(

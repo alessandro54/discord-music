@@ -1,7 +1,7 @@
 import { MessageFlags } from "discord.js";
-import { buildNpComponents, buildNpEmbed } from "../commands/np.js";
+import { nowPlayingControls, nowPlayingEmbed } from "../views/musicEmbeds.js";
 import { log } from "../lib/logger.js";
-import { queues } from "../music/guildQueue.js";
+import { queues } from "../services/music/guildQueue.js";
 
 export default {
     name: "interactionCreate",
@@ -31,8 +31,8 @@ export default {
             }
 
             return interaction.update({
-                embeds: [buildNpEmbed(queue)],
-                components: [buildNpComponents(queue)],
+                embeds: [nowPlayingEmbed(queue)],
+                components: [nowPlayingControls(queue)],
             });
         }
 
