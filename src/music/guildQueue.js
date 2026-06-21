@@ -7,7 +7,7 @@ import {
 import { TIMEOUTS } from "../lib/constants.js";
 import { saveSong } from "../lib/db.js";
 import { log } from "../lib/logger.js";
-import { createStream, searchVideo } from "./stream.js";
+import { createStream, destroyResource, searchVideo } from "./stream.js";
 
 export const queues = new Map();
 
@@ -97,12 +97,13 @@ export class GuildQueue {
     }
 
     _killStream() {
-        for (const proc of this.resource?._procs ?? []) {
-            try {
-                proc.kill();
-            } catch {}
-        }
+        const resource = this.resource;
         this.resource = null;
+        // Reap in the background — callers stay synchronous, but the procs and
+        // their stdio pipes are guaranteed to be cleaned up (SIGTERM→SIGKILL).
+        destroyResource(resource).catch((err) =>
+            log.error(`[Queue ${this.guildId}] killStream: ${err.message}`),
+        );
     }
 
     async add(song) {

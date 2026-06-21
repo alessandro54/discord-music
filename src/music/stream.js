@@ -94,6 +94,36 @@ export async function createStream(url, seekSeconds = 0) {
     return _ytdlpStream(url, seekSeconds);
 }
 
+// Tear down a resource and reap its child procs. SIGTERM first so yt-dlp can
+// propagate the signal to any ffmpeg child it spawned (--download-sections),
+// then SIGKILL if it hasn't exited. Awaiting .status reaps the process and
+// releases its stdio pipes — without this, killed procs leak as zombies.
+export async function destroyResource(resource) {
+    if (!resource) return;
+    // Close the output stream so child stdout pipes receive EOF.
+    try {
+        resource.playStream?.destroy();
+    } catch { /* already gone */ }
+
+    await Promise.all((resource._procs ?? []).map(async (proc) => {
+        try {
+            proc.kill("SIGTERM");
+        } catch { /* already exited */ }
+        const exited = await Promise.race([
+            proc.status.then(() => true).catch(() => true),
+            new Promise((r) => setTimeout(() => r(false), 2000)),
+        ]);
+        if (!exited) {
+            try {
+                proc.kill("SIGKILL");
+            } catch { /* race: exited between checks */ }
+            try {
+                await proc.status;
+            } catch { /* already reaped */ }
+        }
+    }));
+}
+
 function _ytdlpStream(url, seekSeconds) {
     const args = ["--no-playlist", "-o", "-", "--quiet", "--no-warnings", "--no-check-formats", ...COOKIES_ARGS, ...CACHE_ARGS];
 
