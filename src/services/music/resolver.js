@@ -9,6 +9,7 @@ const ytSong = (info, requestedBy, requestedById) => ({
     title: info.title,
     url: info.url,
     duration: info.duration,
+    thumbnail: info.thumbnail ?? null,
     requestedBy,
     requestedById,
     spotifyTrack: null,

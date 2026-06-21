@@ -6,7 +6,7 @@ import { durationToMs, formatMs, progressBar } from "../lib/utils.js";
 
 // Single track added — "Now Playing" if it starts immediately, else "Added to Queue".
 export function trackQueued(song, isFirst, position) {
-    return embed()
+    const e = embed()
         .setTitle(isFirst ? "🎵 Now Playing" : "➕ Added to Queue")
         .setDescription(`**${song.title}**`)
         .addFields(
@@ -14,6 +14,8 @@ export function trackQueued(song, isFirst, position) {
             { name: "Requested by", value: song.requestedBy, inline: true },
             { name: "Position", value: isFirst ? "Now" : `#${position}`, inline: true },
         );
+    if (song.thumbnail) e.setThumbnail(song.thumbnail);
+    return e;
 }
 
 // Multiple tracks (Spotify/YouTube playlist or album) queued at once.
@@ -34,13 +36,15 @@ export function nowPlayingEmbed(queue) {
         ? `${progressBar(elapsedMs, totalMs)}\n\`${formatMs(elapsedMs)} / ${song.duration}\``
         : `\`${formatMs(elapsedMs)} elapsed\``;
 
-    return embed()
+    const e = embed()
         .setTitle("🎵 Now Playing")
         .setDescription(`**${song.title}**\n\n${progressLine}`)
         .addFields(
             { name: "Requested by", value: song.requestedBy, inline: true },
             { name: "Up next", value: queue.songs[1]?.title ?? "Nothing", inline: true },
         );
+    if (song.thumbnail) e.setThumbnail(song.thumbnail);
+    return e;
 }
 
 export function nowPlayingControls(queue) {

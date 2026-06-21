@@ -36,11 +36,13 @@ async function spotifyFetch(path) {
     return res.json();
 }
 
-function trackToSong(track, requestedBy, requestedById) {
+function trackToSong(track, requestedBy, requestedById, art) {
     return {
         title: `${track.name} — ${track.artists[0].name}`,
         url: null,
         duration: formatMs(track.duration_ms),
+        // Spotify album cover — kept through the YouTube resolution in _playNext.
+        thumbnail: art ?? track.album?.images?.[0]?.url ?? null,
         requestedBy,
         requestedById,
         spotifyTrack: { name: track.name, artists: track.artists },
@@ -57,7 +59,7 @@ export async function resolveSpotify(url, requestedBy, requestedById) {
     const playlistMatch = url.match(PLAYLIST_RE);
     if (playlistMatch) {
         const playlist = await spotifyFetch(
-            `/playlists/${playlistMatch[1]}?fields=name,tracks.items(track(name,duration_ms,artists)),tracks.total`,
+            `/playlists/${playlistMatch[1]}?fields=name,tracks.items(track(name,duration_ms,artists,album(images))),tracks.total`,
         );
         const songs = playlist.tracks.items
             .filter((i) => i.track)
@@ -72,11 +74,13 @@ export async function resolveSpotify(url, requestedBy, requestedById) {
             `/albums/${albumMatch[1]}/tracks?limit=50`,
         );
         const albumInfo = await spotifyFetch(
-            `/albums/${albumMatch[1]}?fields=name`,
+            `/albums/${albumMatch[1]}?fields=name,images`,
         );
+        // Album-track objects carry no album field — use the album's own cover.
+        const art = albumInfo.images?.[0]?.url;
         const songs = album.items
             .slice(0, LIMITS.PLAYLIST_MAX)
-            .map((t) => trackToSong(t, requestedBy, requestedById));
+            .map((t) => trackToSong(t, requestedBy, requestedById, art));
         return { songs, playlistName: albumInfo.name };
     }
 

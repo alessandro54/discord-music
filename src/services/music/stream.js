@@ -37,6 +37,11 @@ function extractVideoId(url) {
     return url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)?.[1];
 }
 
+// Derive a cover image from the video id — always exists, no extra API call.
+function ytThumb(videoId) {
+    return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
+}
+
 function fmtSecs(s) {
     s = Math.floor(s);
     const m = Math.floor(s / 60), h = Math.floor(m / 60);
@@ -52,7 +57,7 @@ export async function fetchVideoInfo(url) {
     const info = await yt.getBasicInfo(videoId);
     const title = info.basic_info?.title;
     if (!title) throw new Error("incomplete video info");
-    return { title, url, duration: fmtSecs(info.basic_info?.duration ?? 0) };
+    return { title, url, duration: fmtSecs(info.basic_info?.duration ?? 0), thumbnail: ytThumb(videoId) };
 }
 
 export async function searchVideos(query, limit = 5) {
@@ -62,6 +67,7 @@ export async function searchVideos(query, limit = 5) {
         title: String(video.title?.text ?? video.title ?? query),
         url: `https://www.youtube.com/watch?v=${video.id}`,
         duration: video.duration?.text ?? fmtSecs(video.duration?.seconds ?? 0),
+        thumbnail: video.thumbnails?.[0]?.url ?? ytThumb(video.id),
     }));
 }
 
@@ -90,6 +96,7 @@ export async function fetchPlaylistItems(url, limit) {
                 title: v.title,
                 url: v.url || `https://www.youtube.com/watch?v=${v.id}`,
                 duration: fmtSecs(v.duration || 0),
+                thumbnail: ytThumb(v.id),
             };
         } catch { return null; }
     }).filter(Boolean);
