@@ -94,9 +94,10 @@ SQLite persisted at `/data/bot.db` on a 1GB Fly volume (`data`, gru).
 - Playback is sequential — only one yt-dlp alive at a time. Albums/playlists are a metadata queue (`GuildQueue.songs`); Spotify tracks resolve to YouTube lazily in `_playNext`.
 
 ## Database (`src/lib/db.js`)
-- Adapter pattern keyed on `DB_URL`. Currently SQLite-only (`@db/sqlite`); mysql adapter removed.
-- **Turso (libSQL) planned** — add a `libsql://` branch in `initDb` using `@libsql/client` `createClient({ url, authToken })`. Secrets: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` (full-access, not read-only). libSQL `execute` is async — the adapter's `saveSong`/`getHistory` already return promises at the export boundary.
-- `@db/sqlite` rejects `undefined` binds — coerce to `null`.
+- Adapter pattern. `initDb` picks: **Turso** if `TURSO_DATABASE_URL` is set (or `DB_URL` starts with `libsql://`), else **SQLite** (`@db/sqlite`) from `DB_URL` (`sqlite:<path>`, default `./bot.db`). mysql adapter removed.
+- Turso uses `@libsql/client/web` (pure-HTTP Hrana, no native bindings — Deno/Docker safe). Secrets: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` (full-access, not read-only).
+- Switching to Turso does **not** migrate existing `/data/bot.db` rows — history starts fresh on Turso.
+- Both adapters coerce `undefined` binds to `null` (`@db/sqlite` rejects undefined).
 
 ## YouTube Cookies
 Region is **gru** (Brazil), which mostly avoids bot detection. Occasional `HTTP 403 Forbidden` on individual videos still happens (datacenter IP throttle); the bot skips to the next track. If 403s become frequent, set cookies. iad (US) needs them.
