@@ -1,5 +1,6 @@
 app = 'discord-music-alr6jw'
 primary_region = 'gru'
+swap_size_mb = 512
 
 [build]
 
