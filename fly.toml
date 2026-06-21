@@ -4,6 +4,10 @@ swap_size_mb = 512
 
 [build]
 
+[deploy]
+  # Register/refresh slash commands once per deploy, using the machine's secrets.
+  release_command = "deno run --allow-all src/deployCommands.js"
+
 [env]
   NODE_ENV = "production"
   DB_URL = "sqlite:/data/bot.db"
