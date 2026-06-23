@@ -3,9 +3,15 @@
 FROM denoland/deno:debian
 WORKDIR /app
 
+# Set by buildx: amd64 | arm64. Pick the matching yt-dlp binary.
+ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg curl ca-certificates \
-    && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
+    && case "$TARGETARCH" in \
+         arm64) YTDLP=yt-dlp_linux_aarch64 ;; \
+         *)     YTDLP=yt-dlp_linux ;; \
+       esac \
+    && curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YTDLP" \
        -o /usr/local/bin/yt-dlp \
     && chmod +x /usr/local/bin/yt-dlp \
     && rm -rf /var/lib/apt/lists/*
