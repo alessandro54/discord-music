@@ -77,26 +77,34 @@ cat gha_deploy.pub | ssh -i ~/.ssh/<existing-key> ubuntu@<server-ip> \
 ssh -i gha_deploy ubuntu@<server-ip> "echo ok"   # expect: ok
 ```
 
-Store the **private** key in GitHub **base64-encoded** (raw PEM paste often
-corrupts newlines → `Load key: error in libcrypto` at deploy time):
+Copy the **raw private** key (the deploy uses `appleboy/ssh-action`, which wants
+the unmodified PEM — multiple lines, no spaces, don't trim):
 
 ```bash
-base64 -i gha_deploy | pbcopy
+cat gha_deploy | pbcopy
 ```
 
-**[github]** Repo → Settings → Secrets and variables → Actions → New secret:
+**[github]** Repo → Settings → Secrets and variables → Actions. The deploy job
+runs under `environment: production`, so add it as an **environment** secret
+(Environments → `production`), not a plain repo secret — otherwise the job reads
+it as empty:
 
 | Secret | Value |
 |---|---|
-| `DOKKU_SSH_KEY` | base64 of the private key (from clipboard) |
+| `DOKKU_SSH_KEY` | full `-----BEGIN OPENSSH PRIVATE KEY-----` … `-----END-----` |
 
 GHCR push uses the auto-provided `GITHUB_TOKEN` — no other secret needed.
 
 Clean up **[local]**: `rm gha_deploy gha_deploy.pub`
 
-The workflow decodes it:
+The workflow consumes it directly:
 ```yaml
-echo "${{ secrets.DOKKU_SSH_KEY }}" | base64 -d > ~/.ssh/id_ed25519
+- uses: appleboy/ssh-action@v1
+  with:
+    host: <server-ip>
+    username: ubuntu
+    key: ${{ secrets.DOKKU_SSH_KEY }}
+    script: sudo dokku git:from-image music-bot <image>:<sha>
 ```
 
 ### 4. Let `ubuntu` run dokku [server]
@@ -217,12 +225,15 @@ sudo dokku git:from-image music-bot ghcr.io/alessandro54/discord-music:<old-sha>
 
 | Symptom | Cause / fix |
 |---|---|
-| `Load key: error in libcrypto` / `Permission denied (publickey)` in deploy | Private key in secret is mangled. Store it **base64-encoded** and decode in CI (step 3). |
+| `can't connect without a private SSH key` (appleboy) | `DOKKU_SSH_KEY` empty for the job. It's a **`production` environment** secret — the deploy job must declare `environment: production`. |
+| `Load key: error in libcrypto` / `Permission denied (publickey)` | Private key mangled on paste. Store the **raw** key (`cat key \| pbcopy`), full `-----BEGIN…END-----`, no edits. |
+| `no matching manifest for linux/arm64/v8` / `Failed to pull image` | Oracle Ampere VPS is **arm64**. Build `platforms: linux/arm64` (QEMU) and fetch `yt-dlp_linux_aarch64`. |
 | Deploy job: `denied` / cannot pull image | GHCR package still private → make it public (step 7) or `dokku registry:login`. |
 | `sudo: a password is required` in deploy | sudoers rule missing/wrong path (step 4). Check `which dokku` matches. |
-| Bot builds but never comes online | Wrong/missing `BOT_TOKEN` (must be `BOT_TOKEN`, not `DISCORD_TOKEN`). Check `dokku logs music-bot`. |
+| `TokenInvalid` / bot builds but never comes online | Wrong/missing `BOT_TOKEN` (must be `BOT_TOKEN`, not `DISCORD_TOKEN`; don't paste the `DASHBOARD_TOKEN` rand by mistake). Reset in Discord Dev Portal, `dokku config:set music-bot BOT_TOKEN='…'`. |
 | First deploy fails on health check | `sudo dokku checks:disable music-bot` (step 6). |
 | Dashboard reachable without auth | Set `DASHBOARD_TOKEN` and use `?token=...`. |
+| `Tini is not running as PID 1` warning | Harmless — yt-dlp reaping is explicit in `stream.js`, not Tini-dependent. |
 | OOM / bot dies mid-song | yt-dlp child not reaped — see memory notes in `CLAUDE.md`. Ensure VPS has enough RAM/swap. |
 
 ---
