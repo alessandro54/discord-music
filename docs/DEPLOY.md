@@ -10,7 +10,7 @@ push main ──► GitHub Actions ──► build image ──► push GHCR ─
 
 - **Repo:** `alessandro54/discord-music`
 - **Image:** `ghcr.io/alessandro54/discord-music`
-- **Dokku app:** `bot`
+- **Dokku app:** `music-bot`
 - **Dashboard:** `https://music.chumpitaz.dev` (optional web UI on port 3000)
 
 The bot is a Discord **gateway client** — it does not need inbound HTTP to run.
@@ -53,7 +53,7 @@ cat ~/.ssh/id_ed25519.pub | ssh root@<server-ip> "dokku ssh-keys:add admin"
 ### 2. Create the app + global proxy [server]
 
 ```bash
-sudo dokku apps:create bot
+sudo dokku apps:create music-bot
 ```
 
 Dokku reuses one nginx for all apps and routes by hostname, so the bot's
@@ -116,7 +116,7 @@ are write-only once set (you cannot read them back; keep them in a password
 manager).
 
 ```bash
-sudo dokku config:set bot \
+sudo dokku config:set music-bot \
   BOT_TOKEN=<discord bot token> \
   CLIENT_ID=1513765585794895872 \
   GUILD_ID=414892529427939338 \
@@ -147,7 +147,7 @@ The bot has no fast HTTP readiness on boot (Discord login takes a moment), so
 Dokku's default check would fail the first deploy:
 
 ```bash
-sudo dokku checks:disable bot
+sudo dokku checks:disable music-bot
 ```
 
 ### 7. First deploy + make image public
@@ -177,9 +177,9 @@ After the app is running and DNS resolves:
 # letsencrypt plugin (once per host)
 sudo dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
 
-sudo dokku letsencrypt:set bot email you@chumpitaz.dev
-sudo dokku domains:set bot music.chumpitaz.dev
-sudo dokku letsencrypt:enable bot
+sudo dokku letsencrypt:set music-bot email you@chumpitaz.dev
+sudo dokku domains:set music-bot music.chumpitaz.dev
+sudo dokku letsencrypt:enable music-bot
 sudo dokku letsencrypt:cron-job --add   # auto-renew
 ```
 
@@ -193,22 +193,22 @@ inject `PORT`. The bot reads `PORT` (falls back to 3000).
 - **Code change** → `git push origin main` → auto build + deploy. Done.
 - **Slash command change** → run `deno task deploy` locally (needs `.env`),
   then push the code.
-- **Secret change** → `sudo dokku config:set bot KEY=value` (triggers a restart).
+- **Secret change** → `sudo dokku config:set music-bot KEY=value` (triggers a restart).
 
 ---
 
 ## Verify / operate [server]
 
 ```bash
-sudo dokku ps:report bot          # running state
-sudo dokku logs bot --tail 100    # logs (look for bot login + dashboard line)
-sudo dokku config:show bot        # current env
-sudo dokku ps:restart bot         # restart
+sudo dokku ps:report music-bot          # running state
+sudo dokku logs music-bot --tail 100    # logs (look for bot login + dashboard line)
+sudo dokku config:show music-bot        # current env
+sudo dokku ps:restart music-bot         # restart
 ```
 
 Rollback to a previous image (tags are `:<git-sha>`):
 ```bash
-sudo dokku git:from-image bot ghcr.io/alessandro54/discord-music:<old-sha>
+sudo dokku git:from-image music-bot ghcr.io/alessandro54/discord-music:<old-sha>
 ```
 
 ---
@@ -220,8 +220,8 @@ sudo dokku git:from-image bot ghcr.io/alessandro54/discord-music:<old-sha>
 | `Load key: error in libcrypto` / `Permission denied (publickey)` in deploy | Private key in secret is mangled. Store it **base64-encoded** and decode in CI (step 3). |
 | Deploy job: `denied` / cannot pull image | GHCR package still private → make it public (step 7) or `dokku registry:login`. |
 | `sudo: a password is required` in deploy | sudoers rule missing/wrong path (step 4). Check `which dokku` matches. |
-| Bot builds but never comes online | Wrong/missing `BOT_TOKEN` (must be `BOT_TOKEN`, not `DISCORD_TOKEN`). Check `dokku logs bot`. |
-| First deploy fails on health check | `sudo dokku checks:disable bot` (step 6). |
+| Bot builds but never comes online | Wrong/missing `BOT_TOKEN` (must be `BOT_TOKEN`, not `DISCORD_TOKEN`). Check `dokku logs music-bot`. |
+| First deploy fails on health check | `sudo dokku checks:disable music-bot` (step 6). |
 | Dashboard reachable without auth | Set `DASHBOARD_TOKEN` and use `?token=...`. |
 | OOM / bot dies mid-song | yt-dlp child not reaped — see memory notes in `CLAUDE.md`. Ensure VPS has enough RAM/swap. |
 
@@ -232,11 +232,11 @@ sudo dokku git:from-image bot ghcr.io/alessandro54/discord-music:<old-sha>
 If running SQLite locally on the host rather than Turso:
 
 ```bash
-sudo dokku config:unset bot TURSO_DATABASE_URL TURSO_AUTH_TOKEN
-sudo dokku config:set bot DB_URL=sqlite:/data/bot.db
-sudo dokku storage:ensure-directory bot
-sudo dokku storage:mount bot /var/lib/dokku/data/storage/bot:/data
-sudo dokku ps:restart bot
+sudo dokku config:unset music-bot TURSO_DATABASE_URL TURSO_AUTH_TOKEN
+sudo dokku config:set music-bot DB_URL=sqlite:/data/bot.db
+sudo dokku storage:ensure-directory music-bot
+sudo dokku storage:mount music-bot /var/lib/dokku/data/storage/music-bot:/data
+sudo dokku ps:restart music-bot
 ```
 
 The mount persists `/data/bot.db` across deploys.

@@ -60,4 +60,4 @@ jobs:
           host: 143.47.116.141
           username: ubuntu
           key: ${{ secrets.DOKKU_SSH_KEY }}
-          script: sudo dokku git:from-image bot ${{ env.IMAGE }}:${{ github.sha }}
+          script: sudo dokku git:from-image music-bot ${{ env.IMAGE }}:${{ github.sha }}
