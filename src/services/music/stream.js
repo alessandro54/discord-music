@@ -33,6 +33,11 @@ if (potBaseUrl) {
     log.info(`[stream] PO-token provider → ${potBaseUrl}`);
 }
 
+// YouTube signature / n-sig challenge solver. yt-dlp fetches the EJS solver
+// script from GitHub (cached after first use) and runs it via the bundled deno
+// runtime — without it YouTube returns only image formats, no audio.
+const EJS_ARGS = ["--remote-components", "ejs:github"];
+
 const AUDIO_FMT = "bestaudio[ext=webm][acodec=opus]/bestaudio[ext=opus]/bestaudio";
 const dec = new TextDecoder();
 
@@ -86,7 +91,7 @@ async function _ytdlpVideoInfo(url, videoId) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
             "--no-playlist", "--dump-json", "--quiet", "--no-warnings", "--skip-download",
-            ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS,
+            ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS, ...EJS_ARGS,
             url,
         ],
         stdout: "piped",
@@ -119,7 +124,7 @@ export async function searchVideo(query) {
 export async function fetchPlaylistItems(url, limit) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
-            "--flat-playlist", "--dump-json", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS,
+            "--flat-playlist", "--dump-json", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS, ...EJS_ARGS,
             "--playlist-end", String(limit),
             url,
         ],
@@ -183,7 +188,7 @@ function _ytdlpStream(url, seekSeconds) {
         "--retries", "5", "--fragment-retries", "5", "--extractor-retries", "3",
         // Fail a dead/stalled connection fast instead of hanging the stream.
         "--socket-timeout", "15",
-        ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS,
+        ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS, ...EJS_ARGS,
     ];
 
     if (seekSeconds > 0) {
