@@ -53,6 +53,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Deploy on Dokku
         uses: appleboy/ssh-action@v1
