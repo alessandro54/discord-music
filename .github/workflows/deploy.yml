@@ -2,6 +2,10 @@ name: Build & Deploy to Dokku
 
 on:
   workflow_dispatch:
+  # Weekly rebuild keeps yt-dlp + the EJS solver current with YouTube changes
+  # (cache-busted so pip actually re-pulls — see CACHEBUST below).
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
   push:
     branches: [main]
     paths:
@@ -45,6 +49,10 @@ jobs:
           context: .
           push: true
           platforms: linux/arm64
+          # Scheduled runs bust the pip-install layer so yt-dlp re-pulls fresh;
+          # pushes keep the cache for fast builds.
+          build-args: |
+            CACHEBUST=${{ github.event_name == 'schedule' && github.run_id || '' }}
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}

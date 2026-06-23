@@ -3,6 +3,11 @@
 FROM denoland/deno:debian
 WORKDIR /app
 
+# Changing CACHEBUST (weekly scheduled builds pass github.run_id) invalidates
+# the layer below so pip re-pulls the latest yt-dlp — keeps YouTube extraction
+# working without manual intervention.
+ARG CACHEBUST=
+
 # yt-dlp via pip (not the standalone binary) so the bgutil PO-token provider
 # plugin is auto-discovered — lets us bypass YouTube bot detection on datacenter
 # IPs without cookies. Installed in a venv (Debian is PEP 668 externally-managed).

@@ -196,6 +196,65 @@ inject `PORT`. The bot reads `PORT` (falls back to 3000).
 
 ---
 
+## 9. YouTube access (PO-token provider + cookies + EJS)
+
+This VPS's IP is a **datacenter IP** that YouTube hard-flags — every yt-dlp
+client returns `LOGIN_REQUIRED`. Three pieces are needed together:
+
+1. **Cookies** — get past the `LOGIN_REQUIRED` login gate (the only thing that does).
+2. **PO-token provider** — supplies GVS PO tokens and refreshes the session (so
+   cookies last far longer); runs as a Docker sidecar.
+3. **EJS solver** — solves YouTube's signature / `n`-sig challenge, else only
+   non-audio formats come back. Enabled in code via `--remote-components ejs:github`.
+
+The image installs yt-dlp + the `bgutil-ytdlp-pot-provider` **plugin** via pip
+(not the standalone binary) so the plugin is auto-discovered.
+
+### PO-token provider sidecar [server]
+```bash
+sudo dokku network:create ytpot
+sudo docker run --name bgutil-provider -d --init --restart unless-stopped \
+  --network ytpot \
+  brainicism/bgutil-ytdlp-pot-provider:1.3.1     # arm64 multi-arch; keep version == pip plugin pin
+sudo dokku network:set music-bot attach-post-deploy ytpot   # bot joins the network on each deploy
+sudo dokku config:set music-bot YTDLP_POT_BASE_URL=http://bgutil-provider:4416
+```
+The bot reaches the provider by container name over the shared `ytpot` network.
+`stream.js` adds `--extractor-args youtubepot-bgutilhttp:base_url=$YTDLP_POT_BASE_URL`
+to every yt-dlp call when the var is set.
+
+> The plugin pin in the Dockerfile (`bgutil-ytdlp-pot-provider==1.3.1`) **must
+> match** the provider image tag. Bump both together.
+
+### Cookies [local → server]
+Export Netscape cookies from an **incognito** window logged into a throwaway
+YouTube account — open one video, export with "Get cookies.txt LOCALLY", then
+**close the window without browsing further** (stops YouTube rotating the
+session token → cookies last much longer).
+```bash
+scp -i <key> cookies.txt ubuntu@<server-ip>:~/cookies.txt
+sudo dokku config:set music-bot YOUTUBE_COOKIES="$(cat ~/cookies.txt)" && rm ~/cookies.txt
+```
+
+### Verify [server]
+```bash
+sudo dokku enter music-bot web /opt/ytdlp/bin/yt-dlp \
+  --cookies /tmp/yt-cookies.txt \
+  --extractor-args 'youtubepot-bgutilhttp:base_url=http://bgutil-provider:4416' \
+  --remote-components ejs:github --skip-download --print title \
+  'https://www.youtube.com/watch?v=<id>'
+```
+Prints the title = the full chain works.
+
+### Staying alive indefinitely
+- A **weekly scheduled CI rebuild** (Mon 06:00 UTC, `CACHEBUST` busts the pip
+  layer) keeps yt-dlp + EJS current with YouTube changes — no manual step.
+- The **only** recurring manual task is re-exporting cookies when they finally
+  expire (you'll see `Sign in to confirm` in the logs). POT keeps that rare.
+- Occasionally bump the provider image + Dockerfile plugin pin together.
+
+---
+
 ## Everyday flow
 
 - **Code change** → `git push origin main` → auto build + deploy. Done.
