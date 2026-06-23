@@ -53,11 +53,40 @@ function fmtSecs(s) {
 export async function fetchVideoInfo(url) {
     const videoId = extractVideoId(url);
     if (!videoId) throw new Error("invalid YouTube URL");
-    const yt = await getInnertube();
-    const info = await yt.getBasicInfo(videoId);
-    const title = info.basic_info?.title;
-    if (!title) throw new Error("incomplete video info");
-    return { title, url, duration: fmtSecs(info.basic_info?.duration ?? 0), thumbnail: ytThumb(videoId) };
+
+    // Fast path: in-process Innertube (no subprocess). On datacenter IPs
+    // (e.g. Oracle Cloud) YouTube bot-detection can return a video with no
+    // title — fall back to the cookie-aware yt-dlp path that streaming uses.
+    try {
+        const yt = await getInnertube();
+        const info = await yt.getBasicInfo(videoId);
+        const title = info.basic_info?.title;
+        if (title) {
+            return { title, url, duration: fmtSecs(info.basic_info?.duration ?? 0), thumbnail: ytThumb(videoId) };
+        }
+    } catch (err) {
+        log.warn(`[stream] Innertube getBasicInfo failed, falling back to yt-dlp: ${err.message}`);
+    }
+    return _ytdlpVideoInfo(url, videoId);
+}
+
+// yt-dlp metadata fallback — same extractor + cookies as playback, so it works
+// whenever streaming does.
+async function _ytdlpVideoInfo(url, videoId) {
+    const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
+        args: [
+            "--no-playlist", "--dump-json", "--quiet", "--no-warnings", "--skip-download",
+            ...COOKIES_ARGS, ...CACHE_ARGS,
+            url,
+        ],
+        stdout: "piped",
+        stderr: "piped",
+    }).output();
+    const out = dec.decode(stdout).trim();
+    if (code !== 0 || !out) throw new Error(`incomplete video info: ${dec.decode(stderr).trim() || "yt-dlp returned nothing"}`);
+    const v = JSON.parse(out.split("\n")[0]);
+    if (!v.title) throw new Error("incomplete video info");
+    return { title: v.title, url, duration: fmtSecs(v.duration ?? 0), thumbnail: ytThumb(videoId ?? v.id) };
 }
 
 export async function searchVideos(query, limit = 5) {
