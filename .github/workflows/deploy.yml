@@ -1,4 +1,4 @@
-name: Deploy to Fly.io
+name: Build & Deploy to Dokku
 
 on:
   workflow_dispatch:
@@ -9,16 +9,18 @@ on:
       - 'deno.json'
       - 'deno.lock'
       - 'Dockerfile'
-      - 'fly.toml'
       - '.github/workflows/deploy.yml'
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: production
-    permissions:
-      deployments: write
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/alessandro54/discord-music
 
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -27,19 +29,39 @@ jobs:
           echo "export const COMMIT = '${{ github.sha }}';" > src/lib/buildInfo.js
           echo "export const COMMIT_URL = 'https://github.com/${{ github.repository }}/commit/${{ github.sha }}';" >> src/lib/buildInfo.js
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: flyctl deploy --remote-only
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Clean up old deployments
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add SSH key
         run: |
-          LATEST=$(gh api repos/${{ github.repository }}/deployments --paginate | jq '.[0].id')
-          gh api repos/${{ github.repository }}/deployments --paginate | jq '.[].id' | grep -v "^$LATEST$" | while read id; do
-            gh api -X POST "repos/${{ github.repository }}/deployments/$id/statuses" -f state=inactive > /dev/null 2>&1 || true
-            gh api -X DELETE "repos/${{ github.repository }}/deployments/$id" > /dev/null 2>&1 || true
-          done
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DOKKU_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 143.47.116.141 >> ~/.ssh/known_hosts
+
+      - name: Deploy on Dokku
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ubuntu@143.47.116.141 \
+            "sudo dokku git:from-image bot ${{ env.IMAGE }}:${{ github.sha }}"
