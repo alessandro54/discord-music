@@ -23,6 +23,16 @@ try {
     CACHE_ARGS = ["--cache-dir", "/data/ytdlp-cache"];
 } catch { /* /data not available in local dev */ }
 
+// bgutil PO-token provider — when YTDLP_POT_BASE_URL points at the provider
+// sidecar, yt-dlp's bgutil plugin fetches PO tokens to bypass YouTube bot
+// detection on datacenter IPs (no cookies needed).
+let POT_ARGS = [];
+const potBaseUrl = Deno.env.get("YTDLP_POT_BASE_URL");
+if (potBaseUrl) {
+    POT_ARGS = ["--extractor-args", `youtubepot-bgutilhttp:base_url=${potBaseUrl}`];
+    log.info(`[stream] PO-token provider → ${potBaseUrl}`);
+}
+
 const AUDIO_FMT = "bestaudio[ext=webm][acodec=opus]/bestaudio[ext=opus]/bestaudio";
 const dec = new TextDecoder();
 
@@ -76,7 +86,7 @@ async function _ytdlpVideoInfo(url, videoId) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
             "--no-playlist", "--dump-json", "--quiet", "--no-warnings", "--skip-download",
-            ...COOKIES_ARGS, ...CACHE_ARGS,
+            ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS,
             url,
         ],
         stdout: "piped",
@@ -109,7 +119,7 @@ export async function searchVideo(query) {
 export async function fetchPlaylistItems(url, limit) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
-            "--flat-playlist", "--dump-json", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS,
+            "--flat-playlist", "--dump-json", "--quiet", "--no-warnings", ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS,
             "--playlist-end", String(limit),
             url,
         ],
@@ -173,7 +183,7 @@ function _ytdlpStream(url, seekSeconds) {
         "--retries", "5", "--fragment-retries", "5", "--extractor-retries", "3",
         // Fail a dead/stalled connection fast instead of hanging the stream.
         "--socket-timeout", "15",
-        ...COOKIES_ARGS, ...CACHE_ARGS,
+        ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS,
     ];
 
     if (seekSeconds > 0) {

@@ -3,17 +3,14 @@
 FROM denoland/deno:debian
 WORKDIR /app
 
-# Set by buildx: amd64 | arm64. Pick the matching yt-dlp binary.
-ARG TARGETARCH
+# yt-dlp via pip (not the standalone binary) so the bgutil PO-token provider
+# plugin is auto-discovered — lets us bypass YouTube bot detection on datacenter
+# IPs without cookies. Installed in a venv (Debian is PEP 668 externally-managed).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg curl ca-certificates \
-    && case "$TARGETARCH" in \
-         arm64) YTDLP=yt-dlp_linux_aarch64 ;; \
-         *)     YTDLP=yt-dlp_linux ;; \
-       esac \
-    && curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YTDLP" \
-       -o /usr/local/bin/yt-dlp \
-    && chmod +x /usr/local/bin/yt-dlp \
+    ffmpeg curl ca-certificates python3 python3-venv \
+    && python3 -m venv /opt/ytdlp \
+    && /opt/ytdlp/bin/pip install --no-cache-dir -U yt-dlp "bgutil-ytdlp-pot-provider==1.3.1" \
+    && ln -s /opt/ytdlp/bin/yt-dlp /usr/local/bin/yt-dlp \
     && rm -rf /var/lib/apt/lists/*
 
 COPY deno.json deno.lock ./
