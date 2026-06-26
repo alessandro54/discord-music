@@ -38,11 +38,15 @@ if (potBaseUrl) {
 // runtime — without it YouTube returns only image formats, no audio.
 const EJS_ARGS = ["--remote-components", "ejs:github"];
 
-// Pin the YouTube client to `tv`. The default multi-client set mints a GVS PO
-// token bound to one client (web_safari) but can select a format URL served by
-// another (TVHTML5) → the token doesn't match the URL → HTTP 403 on download.
-// `tv` serves DASH webm/opus (itag 251) AND gets a matching gvs token → no 403.
-const CLIENT_ARGS = ["--extractor-args", "youtube:player_client=tv"];
+// Pin the YouTube client to `tv` and force PO-token fetching.
+// - player_client=tv: the default multi-client set mints a GVS PO token bound
+//   to one client (web_safari) but selects a format URL served by another
+//   (TVHTML5) → token doesn't match the URL → HTTP 403. Pinning tv keeps the
+//   token and the chosen DASH opus format (itag 251) on the same client.
+// - fetch_pot=always: the tv client skips the PO token by default, but some
+//   videos' GVS URLs require one → 403. Forcing it makes bgutil always mint
+//   the player + gvs tokens for tv.
+const CLIENT_ARGS = ["--extractor-args", "youtube:player_client=tv;fetch_pot=always"];
 
 const AUDIO_FMT = "bestaudio[ext=webm][acodec=opus]/bestaudio[ext=opus]/bestaudio";
 const dec = new TextDecoder();
