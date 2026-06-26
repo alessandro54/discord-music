@@ -38,6 +38,12 @@ if (potBaseUrl) {
 // runtime — without it YouTube returns only image formats, no audio.
 const EJS_ARGS = ["--remote-components", "ejs:github"];
 
+// Pin the YouTube client to `tv`. The default multi-client set mints a GVS PO
+// token bound to one client (web_safari) but can select a format URL served by
+// another (TVHTML5) → the token doesn't match the URL → HTTP 403 on download.
+// `tv` serves DASH webm/opus (itag 251) AND gets a matching gvs token → no 403.
+const CLIENT_ARGS = ["--extractor-args", "youtube:player_client=tv"];
+
 const AUDIO_FMT = "bestaudio[ext=webm][acodec=opus]/bestaudio[ext=opus]/bestaudio";
 const dec = new TextDecoder();
 
@@ -91,7 +97,7 @@ async function _ytdlpVideoInfo(url, videoId) {
     const { code, stdout, stderr } = await new Deno.Command(YTDLP, {
         args: [
             "--no-playlist", "--dump-json", "--quiet", "--no-warnings", "--skip-download",
-            ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS, ...EJS_ARGS,
+            ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS, ...EJS_ARGS, ...CLIENT_ARGS,
             url,
         ],
         stdout: "piped",
@@ -188,7 +194,7 @@ function _ytdlpStream(url, seekSeconds) {
         "--retries", "5", "--fragment-retries", "5", "--extractor-retries", "3",
         // Fail a dead/stalled connection fast instead of hanging the stream.
         "--socket-timeout", "15",
-        ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS, ...EJS_ARGS,
+        ...COOKIES_ARGS, ...CACHE_ARGS, ...POT_ARGS, ...EJS_ARGS, ...CLIENT_ARGS,
     ];
 
     if (seekSeconds > 0) {
