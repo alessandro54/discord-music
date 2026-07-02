@@ -7,6 +7,7 @@
     "@libsql/client/web": "npm:@libsql/client@^0.15.0/web",
     "discord.js": "npm:discord.js@^14.16.0",
     "opusscript": "npm:opusscript@^0.1.1",
+    "pngjs": "npm:pngjs@^7.0.0",
     "tweetnacl": "npm:tweetnacl@^1.0.3",
     "youtubei.js": "npm:youtubei.js@^17.0.0"
   },
