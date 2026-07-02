@@ -33,7 +33,13 @@ async function spotifyFetch(path) {
     const res = await fetch(`https://api.spotify.com/v1${path}`, {
         headers: { Authorization: `Bearer ${token}` },
     });
-    return res.json();
+    const data = await res.json();
+    if (data.error) {
+        throw new Error(
+            `Spotify API error (${data.error.status ?? res.status}): ${data.error.message ?? "unknown"}`,
+        );
+    }
+    return data;
 }
 
 function trackToSong(track, requestedBy, requestedById, art) {
