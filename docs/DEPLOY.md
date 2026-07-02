@@ -133,6 +133,7 @@ sudo dokku config:set music-bot \
   TURSO_AUTH_TOKEN=<full-access token> \
   SPOTIFY_CLIENT_ID=<value> \
   SPOTIFY_CLIENT_SECRET=<value> \
+  SPOTIFY_REFRESH_TOKEN=<value> \
   DASHBOARD_TOKEN=$(openssl rand -hex 24) \
   NODE_ENV=production
 ```
@@ -147,6 +148,21 @@ Notes:
 - **`DASHBOARD_TOKEN`** protects the dashboard's control endpoints
   (skip/pause/stop). Required before exposing the dashboard publicly. Access it
   at `https://music.chumpitaz.dev/?token=<value>`.
+- **`SPOTIFY_REFRESH_TOKEN`** — Spotify's Client Credentials flow
+  (`SPOTIFY_CLIENT_ID`/`SECRET`) can read tracks and albums but no longer
+  playlist contents (Spotify policy change). Playlist URLs need a
+  user-authorized refresh token instead. Generate one locally:
+  1. Add `http://127.0.0.1:8888/callback` as a Redirect URI on the app in the
+     [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
+  2. Run `deno task spotify-auth`, open the printed URL, approve access.
+  3. Copy the printed `SPOTIFY_REFRESH_TOKEN` into `.env` (dev) and
+     `dokku config:set` (prod).
+  - **Limitation:** this app is in Spotify's Development Mode, which only
+    lets it read playlists *owned by the account that authorized the
+    token* — not arbitrary users' playlists (confirmed: 403, even on
+    follow). `/play` surfaces a friendly error for other playlists rather
+    than crashing. Track and album links are unaffected — those work for
+    anyone via client-credentials.
 - Optional: `YOUTUBE_COOKIES` (Netscape cookies if 403s become frequent).
 
 ### 6. Disable the zero-downtime health check [server]

@@ -34,6 +34,7 @@ TURSO_DATABASE_URL=          # libsql://… — selects Turso adapter (prod DB)
 TURSO_AUTH_TOKEN=            # full-access
 SPOTIFY_CLIENT_ID=           # for /play with Spotify track/playlist/album URLs
 SPOTIFY_CLIENT_SECRET=
+SPOTIFY_REFRESH_TOKEN=       # user-authorized token for playlist reads — `deno task spotify-auth` to generate
 YTDLP_POT_BASE_URL=          # http://bgutil-provider:4416 — PO-token provider sidecar
 YOUTUBE_COOKIES=             # Netscape cookies — REQUIRED on this datacenter IP (LOGIN_REQUIRED)
 DASHBOARD_TOKEN=             # gates the web dashboard control endpoints
