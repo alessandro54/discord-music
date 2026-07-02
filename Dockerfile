@@ -12,10 +12,13 @@ ARG CACHEBUST=
 # plugin is auto-discovered — lets us bypass YouTube bot detection on datacenter
 # IPs without cookies. Installed in a venv (Debian is PEP 668 externally-managed).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg curl ca-certificates python3 python3-venv \
+    ffmpeg curl ca-certificates git python3 python3-venv \
     && python3 -m venv /opt/ytdlp \
     && /opt/ytdlp/bin/pip install --no-cache-dir -U yt-dlp "bgutil-ytdlp-pot-provider==1.3.1" \
     && ln -s /opt/ytdlp/bin/yt-dlp /usr/local/bin/yt-dlp \
+    && git clone --depth 1 https://gitlab.com/phoneybadger/pokemon-colorscripts.git /tmp/pokemon-colorscripts \
+    && (cd /tmp/pokemon-colorscripts && sh install.sh) \
+    && rm -rf /tmp/pokemon-colorscripts \
     && rm -rf /var/lib/apt/lists/*
 
 COPY deno.json deno.lock ./
