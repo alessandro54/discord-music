@@ -6,15 +6,27 @@ import { log } from "../../lib/logger.js";
 const YTDLP = Deno.env.get("YTDLP_PATH") || `${import.meta.dirname}/yt-dlp`;
 
 let COOKIES_ARGS = [];
+function writeCookies(text) {
+    Deno.writeTextFileSync("/tmp/yt-cookies.txt", text);
+    COOKIES_ARGS = ["--cookies", "/tmp/yt-cookies.txt"];
+}
+
 const cookies = Deno.env.get("YOUTUBE_COOKIES");
 if (cookies) {
     try {
-        Deno.writeTextFileSync("/tmp/yt-cookies.txt", cookies);
-        COOKIES_ARGS = ["--cookies", "/tmp/yt-cookies.txt"];
+        writeCookies(cookies);
         log.info("[stream] YouTube cookies loaded");
     } catch (err) {
         log.error(`[stream] Failed to write cookies: ${err.message}`);
     }
+}
+
+// Hot-swap cookies at runtime (see commands/setcookies.js). Takes effect on
+// the next yt-dlp call — no restart needed — but doesn't persist: the host's
+// YOUTUBE_COOKIES config var still wins on the next deploy/restart.
+export function reloadCookies(text) {
+    writeCookies(text);
+    log.info("[stream] YouTube cookies reloaded (live only — update YOUTUBE_COOKIES on the host to persist)");
 }
 
 let CACHE_ARGS = [];
